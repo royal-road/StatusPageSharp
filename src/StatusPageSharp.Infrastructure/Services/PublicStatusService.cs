@@ -134,6 +134,8 @@ public sealed class PublicStatusService(ApplicationDbContext dbContext, IClock c
             service.Description,
             status,
             service.LastLatencyMilliseconds,
+            await GetServiceLastThirtyDayUptimeAsync(service.Id, cancellationToken),
+            await GetServiceDailyStatusesAsync(service.Id, cancellationToken),
             history.UptimePoints,
             history.LatencyPoints,
             history.SlaPoints
@@ -227,7 +229,7 @@ public sealed class PublicStatusService(ApplicationDbContext dbContext, IClock c
             service.Name,
             hourlyRollups
                 .Select(rollup => new HistoryPointModel(
-                    rollup.HourStartUtc.ToString("MM-dd HH:mm"),
+                    rollup.HourStartUtc.ToString("MMM d, HH:mm 'UTC'"),
                     CalculateAvailabilityPercentage(
                         rollup.AvailabilitySuccessChecks,
                         rollup.AvailabilityEligibleChecks
@@ -236,13 +238,13 @@ public sealed class PublicStatusService(ApplicationDbContext dbContext, IClock c
                 .ToList(),
             hourlyRollups
                 .Select(rollup => new HistoryPointModel(
-                    rollup.HourStartUtc.ToString("MM-dd HH:mm"),
+                    rollup.HourStartUtc.ToString("MMM d, HH:mm 'UTC'"),
                     rollup.AverageLatencyMilliseconds
                 ))
                 .ToList(),
             monthlySnapshots
                 .Select(snapshot => new MonthlySlaPointModel(
-                    snapshot.Month.ToString("yyyy-MM"),
+                    snapshot.Month.ToString("MMM yyyy"),
                     snapshot.UptimePercentage
                 ))
                 .ToList()
@@ -344,10 +346,58 @@ public sealed class PublicStatusService(ApplicationDbContext dbContext, IClock c
                                 rollup.Day,
                                 rollup.AvailabilityEligibleChecks == 0
                                     || rollup.AvailabilitySuccessChecks
-                                        == rollup.AvailabilityEligibleChecks
+                                        == rollup.AvailabilityEligibleChecks,
+                                CalculateAvailabilityPercentage(
+                                    rollup.AvailabilitySuccessChecks,
+                                    rollup.AvailabilityEligibleChecks
+                                )
                             ))
                             .ToList()
             );
+    }
+
+    private async Task<IReadOnlyList<DailyStatusModel>> GetServiceDailyStatusesAsync(
+        Guid serviceId,
+        CancellationToken cancellationToken
+    )
+    {
+        var startDay = DateOnly.FromDateTime(clock.UtcNow.Date.AddDays(-29));
+        return await dbContext
+            .DailyServiceRollups.AsNoTracking()
+            .Where(rollup => rollup.ServiceId == serviceId && rollup.Day >= startDay)
+            .OrderBy(rollup => rollup.Day)
+            .Select(rollup => new DailyStatusModel(
+                rollup.Day,
+                rollup.AvailabilityEligibleChecks == 0
+                    || rollup.AvailabilitySuccessChecks == rollup.AvailabilityEligibleChecks,
+                CalculateAvailabilityPercentage(
+                    rollup.AvailabilitySuccessChecks,
+                    rollup.AvailabilityEligibleChecks
+                )
+            ))
+            .ToListAsync(cancellationToken);
+    }
+
+    private async Task<decimal?> GetServiceLastThirtyDayUptimeAsync(
+        Guid serviceId,
+        CancellationToken cancellationToken
+    )
+    {
+        var startDay = DateOnly.FromDateTime(clock.UtcNow.Date.AddDays(-29));
+        var aggregates = await dbContext
+            .DailyServiceRollups.AsNoTracking()
+            .Where(rollup => rollup.ServiceId == serviceId && rollup.Day >= startDay)
+            .GroupBy(rollup => rollup.ServiceId)
+            .Select(group => new
+            {
+                EligibleChecks = group.Sum(item => item.AvailabilityEligibleChecks),
+                SuccessfulChecks = group.Sum(item => item.AvailabilitySuccessChecks),
+            })
+            .SingleOrDefaultAsync(cancellationToken);
+
+        return aggregates is null || aggregates.EligibleChecks == 0
+            ? null
+            : Math.Round(aggregates.SuccessfulChecks * 100m / aggregates.EligibleChecks, 2);
     }
 
     private async Task<IReadOnlyList<PublicIncidentSummaryModel>> GetIncidentSummariesAsync(

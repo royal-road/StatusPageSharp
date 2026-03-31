@@ -2,6 +2,10 @@
 @model StatusPageSharp.Web.Pages.Services.DetailsModel
 @{
     ViewData["Title"] = Model.Service.Name;
+    var healthyDays = Model.Service.DailyStatuses.Count(item => item.UptimePercentage >= 100m);
+    var impactedDays = Model.Service.DailyStatuses.Count(item => item.UptimePercentage < 100m);
+    var worstDay = Model.Service.DailyStatuses.OrderBy(item => item.UptimePercentage).FirstOrDefault();
+    var worstDayDowntime = worstDay is null ? (decimal?)null : 100m - worstDay.UptimePercentage;
 }
 
 <section class="hero-section flex items-end justify-between gap-8 max-md:flex-col max-md:items-start">
@@ -19,13 +23,39 @@
     </div>
 </section>
 
-<div class="grid gap-6 grid-cols-[repeat(auto-fit,minmax(320px,1fr))]">
-    <article class="obsidian-card-elevated p-6">
+<div class="grid items-start gap-6 grid-cols-[repeat(auto-fit,minmax(320px,1fr))]">
+    <article class="obsidian-card-elevated min-h-60 p-6 flex flex-col">
         <div class="flex items-baseline justify-between gap-4 mb-4">
             <h2 class="text-base font-semibold tracking-tight m-0">Availability</h2>
-            <span class="text-muted-foreground/50 text-sm font-mono">48h</span>
+            <span class="text-muted-foreground/50 text-sm font-mono">30d</span>
         </div>
-        <svg class="w-full min-h-60 overflow-visible" id="uptime-chart"></svg>
+        <div class="flex items-center justify-between gap-4 mb-4 max-md:flex-col max-md:items-start">
+            <span class="text-muted-foreground/60 text-sm">Daily uptime over the last 30 days.</span>
+            <span class="font-mono text-[0.8rem] text-muted-foreground/70">
+                @(Model.Service.LastThirtyDayUptimePercentage?.ToString("0.00") ?? "--")%
+            </span>
+        </div>
+        <div class="rounded-xl border border-white/[0.03] bg-secondary/40 p-4">
+            <partial name="~/Pages/Shared/_AvailabilityBars.cshtml"
+                     model="new AvailabilityBarSeriesModel(Model.Service.DailyStatuses, Model.Service.LastThirtyDayUptimePercentage, true, true)" />
+        </div>
+        <div class="grid grid-cols-3 gap-3 mt-auto pt-4 max-md:grid-cols-1">
+            <div class="rounded-lg border border-white/[0.03] bg-secondary/30 p-3">
+                <span class="block font-mono text-[0.68rem] uppercase tracking-[0.12em] text-muted-foreground/45">Healthy Days</span>
+                <strong class="block mt-1 text-[1.05rem] font-semibold text-foreground">@healthyDays</strong>
+                <span class="block mt-1 text-[0.76rem] text-muted-foreground/60">days at 100% uptime</span>
+            </div>
+            <div class="rounded-lg border border-white/[0.03] bg-secondary/30 p-3">
+                <span class="block font-mono text-[0.68rem] uppercase tracking-[0.12em] text-muted-foreground/45">Impacted Days</span>
+                <strong class="block mt-1 text-[1.05rem] font-semibold text-foreground">@impactedDays</strong>
+                <span class="block mt-1 text-[0.76rem] text-muted-foreground/60">days with recorded downtime</span>
+            </div>
+            <div class="rounded-lg border border-white/[0.03] bg-secondary/30 p-3">
+                <span class="block font-mono text-[0.68rem] uppercase tracking-[0.12em] text-muted-foreground/45">Worst Day</span>
+                <strong class="block mt-1 text-[1.05rem] font-semibold text-foreground">@(worstDay?.Day.ToString("MMM d") ?? "--")</strong>
+                <span class="block mt-1 text-[0.76rem] text-muted-foreground/60">@(worstDayDowntime is null ? "no recorded downtime" : $"{worstDayDowntime:0.00}% downtime")</span>
+            </div>
+        </div>
     </article>
     <article class="obsidian-card-elevated p-6">
         <div class="flex items-baseline justify-between gap-4 mb-4">
@@ -38,16 +68,15 @@
 
 <section class="obsidian-card p-6">
     <div class="flex items-baseline justify-between gap-4 mb-4">
-        <h2 class="text-base font-semibold tracking-tight m-0">Monthly SLA</h2>
-        <span class="text-muted-foreground/50 text-sm font-mono">calendar</span>
+        <h2 class="text-base font-semibold tracking-tight m-0">Last 12 Months SLA</h2>
+        <span class="text-muted-foreground/50 text-sm font-mono">rolling</span>
     </div>
     <svg class="w-full min-h-60 overflow-visible" id="sla-chart"></svg>
 </section>
 
 @section Scripts {
     <script>
-        window.renderStatusChart("uptime-chart", @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Service.UptimePoints)));
-        window.renderStatusChart("latency-chart", @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Service.LatencyPoints)));
-        window.renderStatusChart("sla-chart", @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Service.SlaPoints.Select(item => new { label = item.MonthLabel, value = item.UptimePercentage }))));
+        window.renderStatusChart("latency-chart", @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Service.LatencyPoints)), { valueSuffix: " ms", decimals: 0 });
+        window.renderStatusChart("sla-chart", @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Service.SlaPoints.Select(item => new { label = item.MonthLabel, value = item.UptimePercentage }))), { valueSuffix: "%", decimals: 2 });
     </script>
 }

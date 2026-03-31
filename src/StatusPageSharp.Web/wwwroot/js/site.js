@@ -1,4 +1,119 @@
-window.renderStatusChart = function renderStatusChart(elementId, points) {
+const findTooltipTarget = target =>
+    target instanceof Element ? target.closest("[data-tooltip]") : null;
+
+const tooltipState = {
+    element: null,
+    activeTarget: null,
+    initialized: false
+};
+
+const ensureTooltipElement = () => {
+    if (tooltipState.element) {
+        return tooltipState.element;
+    }
+
+    const tooltip = document.createElement("div");
+    tooltip.className = "status-tooltip";
+    tooltip.setAttribute("role", "tooltip");
+    document.body.appendChild(tooltip);
+    tooltipState.element = tooltip;
+    return tooltip;
+};
+
+const decodeTooltipText = value => value
+    .replaceAll("&#10;", "\n")
+    .replaceAll("&quot;", "\"")
+    .replaceAll("&#39;", "'")
+    .replaceAll("&lt;", "<")
+    .replaceAll("&gt;", ">")
+    .replaceAll("&amp;", "&");
+
+const positionTooltip = target => {
+    const tooltip = ensureTooltipElement();
+    const rect = target.getBoundingClientRect();
+    const tooltipRect = tooltip.getBoundingClientRect();
+    let top = rect.top - tooltipRect.height - 10;
+
+    if (top < 8) {
+        top = rect.bottom + 10;
+    }
+
+    let left = rect.left + rect.width / 2 - tooltipRect.width / 2;
+    left = Math.max(8, Math.min(left, window.innerWidth - tooltipRect.width - 8));
+
+    tooltip.style.transform = `translate(${Math.round(left)}px, ${Math.round(top)}px)`;
+};
+
+const showTooltip = target => {
+    const tooltip = ensureTooltipElement();
+    const tooltipText = decodeTooltipText(target.getAttribute("data-tooltip") ?? "");
+    if (!tooltipText) {
+        return;
+    }
+
+    tooltip.textContent = tooltipText;
+    tooltip.setAttribute("data-visible", "true");
+    tooltipState.activeTarget = target;
+    positionTooltip(target);
+};
+
+const hideTooltip = () => {
+    if (!tooltipState.element) {
+        return;
+    }
+
+    tooltipState.element.removeAttribute("data-visible");
+    tooltipState.activeTarget = null;
+};
+
+const initializeStatusTooltips = () => {
+    if (tooltipState.initialized) {
+        return;
+    }
+
+    tooltipState.initialized = true;
+
+    document.addEventListener("mouseover", event => {
+        const target = findTooltipTarget(event.target);
+        const relatedTarget = findTooltipTarget(event.relatedTarget);
+        if (!target || target === relatedTarget) {
+            return;
+        }
+
+        showTooltip(target);
+    });
+
+    document.addEventListener("mouseout", event => {
+        const target = findTooltipTarget(event.target);
+        const relatedTarget = findTooltipTarget(event.relatedTarget);
+        if (!target || target === relatedTarget || tooltipState.activeTarget !== target) {
+            return;
+        }
+
+        hideTooltip();
+    });
+
+    document.addEventListener("focusin", event => {
+        const target = findTooltipTarget(event.target);
+        if (target) {
+            showTooltip(target);
+        }
+    });
+
+    document.addEventListener("focusout", event => {
+        const target = findTooltipTarget(event.target);
+        if (target && tooltipState.activeTarget === target) {
+            hideTooltip();
+        }
+    });
+
+    window.addEventListener("scroll", hideTooltip, true);
+    window.addEventListener("resize", hideTooltip);
+};
+
+initializeStatusTooltips();
+
+window.renderStatusChart = function renderStatusChart(elementId, points, options = {}) {
     const element = document.getElementById(elementId);
     if (!element) return;
 
@@ -12,7 +127,6 @@ window.renderStatusChart = function renderStatusChart(elementId, points) {
     const primaryRGB = "123, 138, 255";
     const gridColor = "rgba(255, 255, 255, 0.03)";
     const textColor = "rgba(228, 228, 236, 0.35)";
-    const dotGlow = `rgba(${primaryRGB}, 0.2)`;
 
     // Empty state
     if (!points || points.length === 0) {
@@ -27,6 +141,35 @@ window.renderStatusChart = function renderStatusChart(elementId, points) {
 
     // Handle both PascalCase (C# default) and camelCase property names
     const val = p => Number(p.value ?? p.Value ?? 0);
+    const label = p => String(p.label ?? p.Label ?? "");
+    const formatValue = value => {
+        if (typeof options.decimals === "number") {
+            return value.toFixed(options.decimals);
+        }
+
+        return Number.isInteger(value) ? value.toString() : value.toFixed(1);
+    };
+    const escapeHtml = value => value
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;");
+    const escapeAttribute = value => value
+        .replaceAll("&", "&amp;")
+        .replaceAll("\"", "&quot;")
+        .replaceAll("'", "&#39;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll("\n", "&#10;");
+    const tooltipText = p => {
+        const segments = [];
+        const pointLabel = label(p);
+        if (pointLabel.length > 0) {
+            segments.push(pointLabel);
+        }
+
+        segments.push(`${formatValue(val(p))}${options.valueSuffix ?? ""}`);
+        return escapeHtml(segments.join("\n"));
+    };
     const values = points.map(val);
     const rawMin = Math.min(...values);
     const rawMax = Math.max(...values);
@@ -74,25 +217,34 @@ window.renderStatusChart = function renderStatusChart(elementId, points) {
     let dots = "";
     if (points.length <= 20) {
         const r = points.length <= 5 ? 4 : 2.5;
-        dots = points.map((_, i) => {
+        dots = points.map((p, i) => {
             const c = coords[i];
+            const pointTooltip = escapeAttribute(tooltipText(p));
             return `
                 <circle cx="${c.x}" cy="${c.y}" r="${r + 5}" fill="rgb(${primaryRGB})" opacity="0.08"/>
-                <circle cx="${c.x}" cy="${c.y}" r="${r}" fill="rgb(${primaryRGB})" stroke="rgba(6,6,11,0.6)" stroke-width="1.5"/>
+                <circle cx="${c.x}" cy="${c.y}" r="${r}" fill="rgb(${primaryRGB})" stroke="rgba(6,6,11,0.6)" stroke-width="1.5"
+                        data-tooltip="${pointTooltip}" tabindex="0" aria-label="${pointTooltip}"></circle>
             `;
         }).join("");
     }
+
+    const hoverTargets = points.map((p, i) => {
+        const c = coords[i];
+        const pointTooltip = escapeAttribute(tooltipText(p));
+        return `
+            <circle cx="${c.x}" cy="${c.y}" r="10" fill="rgba(0, 0, 0, 0.001)"
+                    data-tooltip="${pointTooltip}" tabindex="0" aria-label="${pointTooltip}"></circle>
+        `;
+    }).join("");
 
     // Value labels for very small datasets
     let labels = "";
     if (points.length <= 5) {
         labels = points.map((p, i) => {
             const c = coords[i];
-            const v = val(p);
-            const display = v % 1 === 0 ? v.toString() : v.toFixed(1);
             return `<text x="${c.x}" y="${c.y - 14}" text-anchor="middle"
                         fill="${textColor}" font-family="var(--font-family-mono, monospace)" font-size="10.5">
-                        ${display}
+                        ${formatValue(val(p))}
                     </text>`;
         }).join("");
     }
@@ -111,6 +263,7 @@ window.renderStatusChart = function renderStatusChart(elementId, points) {
         <path d="${areaPath}" fill="url(#areaGrad-${elementId})"/>
         <path class="chart-line" d="${linePath}"/>
         ${dots}
+        ${hoverTargets}
         ${labels}
     `;
 };

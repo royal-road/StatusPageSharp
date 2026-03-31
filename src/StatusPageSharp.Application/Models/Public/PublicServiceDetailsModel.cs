@@ -11,6 +11,8 @@ public sealed record PublicServiceDetailsModel(
     string? Description,
     ServiceStatus Status,
     int? LastLatencyMilliseconds,
+    decimal? LastThirtyDayUptimePercentage,
+    IReadOnlyList<DailyStatusModel> DailyStatuses,
     IReadOnlyList<HistoryPointModel> UptimePoints,
     IReadOnlyList<HistoryPointModel> LatencyPoints,
     IReadOnlyList<MonthlySlaPointModel> SlaPoints

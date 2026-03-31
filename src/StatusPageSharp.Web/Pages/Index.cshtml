@@ -76,9 +76,6 @@
             <div class="service-grid">
                 @foreach (var service in group.Services)
                 {
-                    var startDay = DateOnly.FromDateTime(DateTime.UtcNow.Date.AddDays(-29));
-                    var dailyLookup = service.DailyStatuses.ToDictionary(d => d.Day, d => d.IsOperational);
-
                     <a class="service-row"
                        asp-page="/Services/Details" asp-route-slug="@service.Slug">
                         <div class="min-w-0">
@@ -88,14 +85,9 @@
                                 <span class="text-muted-foreground/60 text-[0.78rem] block mt-0.5 truncate">@service.Description</span>
                             }
                         </div>
-                        <div class="dot-matrix max-md:hidden" title="30-day uptime: @(service.LastThirtyDayUptimePercentage?.ToString("0.00") ?? "--")%">
-                            @for (var i = 0; i < 30; i++)
-                            {
-                                var day = startDay.AddDays(i);
-                                var hasData = dailyLookup.TryGetValue(day, out var isOperational);
-                                var dotClass = !hasData ? "dot-none" : isOperational ? "dot-ok" : "dot-bad";
-                                <div class="dot-matrix-dot @dotClass" title="@day.ToString("MMM d")"></div>
-                            }
+                        <div class="max-md:hidden">
+                            <partial name="~/Pages/Shared/_AvailabilityBars.cshtml"
+                                     model="new AvailabilityBarSeriesModel(service.DailyStatuses, service.LastThirtyDayUptimePercentage, false, false)" />
                         </div>
                         <span class="status-pill @StatusDisplayHelper.ToCssClass(service.Status)">@StatusDisplayHelper.ToLabel(service.Status)</span>
                         <div class="flex items-center gap-3 font-mono text-[0.75rem] text-muted-foreground/60 tracking-tight max-md:hidden">

@@ -1,0 +1,50 @@
+@model AvailabilityBarSeriesModel
+@{
+    var startDay = DateOnly.FromDateTime(DateTime.UtcNow.Date.AddDays(-29));
+    var endDay = startDay.AddDays(29);
+    var dailyLookup = Model.DailyStatuses.ToDictionary(item => item.Day, item => item);
+    var containerClass = Model.AllowWrap ? "availability-bars availability-bars-wrap" : "availability-bars availability-bars-inline";
+    var overallUptime = Model.LastThirtyDayUptimePercentage?.ToString("0.00") ?? "--";
+    DateOnly[] rangeDays = [
+        startDay,
+        startDay.AddDays(7),
+        startDay.AddDays(14),
+        startDay.AddDays(21),
+        endDay
+    ];
+}
+
+<div class="@containerClass" aria-label="30-day uptime: @overallUptime%">
+    @for (var i = 0; i < 30; i++)
+    {
+        var day = startDay.AddDays(i);
+        var dividerClass = Model.ShowScale && i > 0 && i % 7 == 0 ? "availability-bar-divider" : string.Empty;
+        if (!dailyLookup.TryGetValue(day, out var dailyStatus))
+        {
+            <div class="availability-bar availability-bar-none @dividerClass"
+                 data-tooltip="@($"{day:MMM d, yyyy}&#10;No data")"
+                 aria-label="@($"{day:MMM d, yyyy}: No data")"></div>
+            continue;
+        }
+
+        var barClass = dailyStatus.IsOperational ? "availability-bar-ok" : "availability-bar-bad";
+        var downtimePercentage = 100m - dailyStatus.UptimePercentage;
+        <div class="availability-bar @barClass @dividerClass"
+             data-tooltip="@($"{day:MMM d, yyyy}&#10;{downtimePercentage:0.00}% downtime")"
+             aria-label="@($"{day:MMM d, yyyy}: {downtimePercentage:0.00}% downtime")"></div>
+    }
+</div>
+@if (Model.ShowScale)
+{
+    <div class="availability-range">
+        @for (var i = 0; i < rangeDays.Length; i++)
+        {
+            var alignmentClass = i == 0
+                ? "availability-range-label-start"
+                : i == rangeDays.Length - 1
+                    ? "availability-range-label-end"
+                    : "availability-range-label-center";
+            <span class="availability-range-label @alignmentClass">@rangeDays[i].ToString("MMM d")</span>
+        }
+    </div>
+}
