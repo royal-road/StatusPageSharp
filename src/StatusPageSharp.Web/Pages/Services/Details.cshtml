@@ -4,44 +4,44 @@
     ViewData["Title"] = Model.Service.Name;
 }
 
-<section class="hero-card compact">
+<section class="hero-section flex items-end justify-between gap-8 max-md:flex-col max-md:items-start">
     <div>
-        <p class="eyebrow">@Model.Service.GroupName</p>
-        <h1>@Model.Service.Name</h1>
+        <span class="inline-block font-mono text-[0.72rem] font-medium tracking-[0.14em] uppercase text-primary/80 mb-2">@Model.Service.GroupName</span>
+        <h1 class="text-[clamp(2rem,4vw,3.25rem)] text-foreground mb-3">@Model.Service.Name</h1>
         @if (!string.IsNullOrWhiteSpace(Model.Service.Description))
         {
-            <p class="lead">@Model.Service.Description</p>
+            <p class="max-w-lg text-muted-foreground leading-relaxed text-[0.95rem]">@Model.Service.Description</p>
         }
     </div>
-    <div class="status-stack">
+    <div class="grid justify-items-end gap-2.5 max-md:justify-items-start">
         <span class="status-pill large @StatusDisplayHelper.ToCssClass(Model.Service.Status)">@StatusDisplayHelper.ToLabel(Model.Service.Status)</span>
-        <span class="metric-copy">Latest latency: @(Model.Service.LastLatencyMilliseconds?.ToString() ?? "--") ms</span>
+        <span class="font-mono text-[0.75rem] text-muted-foreground/60">Latest latency: @(Model.Service.LastLatencyMilliseconds?.ToString() ?? "--") ms</span>
     </div>
 </section>
 
-<section class="chart-grid">
-    <article class="section-card">
-        <div class="section-header">
-            <h2>Availability</h2>
-            <span class="muted">Last 48 hours</span>
+<div class="grid gap-6 grid-cols-[repeat(auto-fit,minmax(320px,1fr))]">
+    <article class="obsidian-card-elevated p-6">
+        <div class="flex items-baseline justify-between gap-4 mb-4">
+            <h2 class="text-base font-semibold tracking-tight m-0">Availability</h2>
+            <span class="text-muted-foreground/50 text-sm font-mono">48h</span>
         </div>
-        <svg class="history-chart" id="uptime-chart"></svg>
+        <svg class="w-full min-h-60 overflow-visible" id="uptime-chart"></svg>
     </article>
-    <article class="section-card">
-        <div class="section-header">
-            <h2>Latency</h2>
-            <span class="muted">Average response time</span>
+    <article class="obsidian-card-elevated p-6">
+        <div class="flex items-baseline justify-between gap-4 mb-4">
+            <h2 class="text-base font-semibold tracking-tight m-0">Latency</h2>
+            <span class="text-muted-foreground/50 text-sm font-mono">avg</span>
         </div>
-        <svg class="history-chart" id="latency-chart"></svg>
+        <svg class="w-full min-h-60 overflow-visible" id="latency-chart"></svg>
     </article>
-</section>
+</div>
 
-<section class="section-card">
-    <div class="section-header">
-        <h2>Monthly SLA</h2>
-        <span class="muted">Calendar month view</span>
+<section class="obsidian-card p-6">
+    <div class="flex items-baseline justify-between gap-4 mb-4">
+        <h2 class="text-base font-semibold tracking-tight m-0">Monthly SLA</h2>
+        <span class="text-muted-foreground/50 text-sm font-mono">calendar</span>
     </div>
-    <svg class="history-chart" id="sla-chart"></svg>
+    <svg class="w-full min-h-60 overflow-visible" id="sla-chart"></svg>
 </section>
 
 @section Scripts {

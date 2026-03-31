@@ -4,114 +4,116 @@
     ViewData["Title"] = "Edit Service";
 }
 
-<section class="section-card">
-    <div class="section-header"><h1>Edit Service</h1></div>
-    <form method="post" class="form-grid">
+<section class="rounded-2xl border border-border bg-card p-6 shadow-sm">
+    <div class="flex items-baseline justify-between gap-4 mb-6">
+        <h1 class="text-2xl font-display font-bold tracking-tight m-0">Edit Service</h1>
+    </div>
+    <form method="post" class="grid gap-6">
 
-        <div class="form-section">
-            <h3 class="form-section-title">Basic Information</h3>
-            <div class="form-grid two-up">
-                <div class="field">
-                    <label asp-for="Input.Name">Name</label>
-                    <input asp-for="Input.Name" />
+        <div class="pt-0">
+            <h3 class="mb-4 font-display text-[0.9rem] font-bold tracking-tight">Basic Information</h3>
+            <div class="grid grid-cols-2 gap-4 max-md:grid-cols-1">
+                <div class="grid gap-1.5">
+                    <label class="text-[0.78rem] font-semibold text-muted-foreground tracking-wide uppercase" asp-for="Input.Name">Name</label>
+                    <input class="w-full px-3 py-2.5 rounded-md border border-border bg-background text-foreground text-[0.88rem] focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all" asp-for="Input.Name" />
                 </div>
-                <div class="field">
-                    <label asp-for="Input.Slug">Slug</label>
-                    <input asp-for="Input.Slug" />
+                <div class="grid gap-1.5">
+                    <label class="text-[0.78rem] font-semibold text-muted-foreground tracking-wide uppercase" asp-for="Input.Slug">Slug</label>
+                    <input class="w-full px-3 py-2.5 rounded-md border border-border bg-background text-foreground text-[0.88rem] focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all" asp-for="Input.Slug" />
                 </div>
-                <div class="field">
-                    <label asp-for="Input.ServiceGroupId">Group</label>
-                    <select asp-for="Input.ServiceGroupId">
+                <div class="grid gap-1.5">
+                    <label class="text-[0.78rem] font-semibold text-muted-foreground tracking-wide uppercase" asp-for="Input.ServiceGroupId">Group</label>
+                    <select class="w-full px-3 py-2.5 rounded-md border border-border bg-background text-foreground text-[0.88rem] focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all" asp-for="Input.ServiceGroupId">
                         @foreach (var group in Model.Groups)
                         {
                             <option value="@group.Id">@group.Name</option>
                         }
                     </select>
                 </div>
-                <div class="field">
-                    <label asp-for="Input.IsEnabled">Status</label>
-                    <select asp-for="Input.IsEnabled">
+                <div class="grid gap-1.5">
+                    <label class="text-[0.78rem] font-semibold text-muted-foreground tracking-wide uppercase" asp-for="Input.IsEnabled">Status</label>
+                    <select class="w-full px-3 py-2.5 rounded-md border border-border bg-background text-foreground text-[0.88rem] focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all" asp-for="Input.IsEnabled">
                         <option value="true">Enabled</option>
                         <option value="false">Disabled</option>
                     </select>
                 </div>
-                <div class="field field-wide">
-                    <label asp-for="Input.Description">Description</label>
-                    <input asp-for="Input.Description" />
+                <div class="grid gap-1.5 col-span-full">
+                    <label class="text-[0.78rem] font-semibold text-muted-foreground tracking-wide uppercase" asp-for="Input.Description">Description</label>
+                    <input class="w-full px-3 py-2.5 rounded-md border border-border bg-background text-foreground text-[0.88rem] focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all" asp-for="Input.Description" />
                 </div>
-                <div class="field">
-                    <label asp-for="Input.DisplayOrder">Display Order</label>
-                    <input asp-for="Input.DisplayOrder" type="number" />
-                </div>
-            </div>
-        </div>
-
-        <div class="form-section">
-            <h3 class="form-section-title">Monitoring</h3>
-            <div class="form-grid two-up">
-                <div class="field">
-                    <label asp-for="Input.MonitorType">Monitor Type</label>
-                    <select asp-for="Input.MonitorType" asp-items="Html.GetEnumSelectList<StatusPageSharp.Domain.Enums.MonitorType>()"></select>
-                </div>
-                <div class="field">
-                    <label asp-for="Input.CheckPeriodSeconds">Check Period (sec)</label>
-                    <input asp-for="Input.CheckPeriodSeconds" type="number" />
-                </div>
-                <div class="field">
-                    <label asp-for="Input.TimeoutSeconds">Timeout (sec)</label>
-                    <input asp-for="Input.TimeoutSeconds" type="number" />
-                </div>
-                <div class="field">
-                    <label asp-for="Input.RawRetentionDaysOverride">Retention Override (days)</label>
-                    <input asp-for="Input.RawRetentionDaysOverride" type="number" />
-                </div>
-                <div class="field">
-                    <label asp-for="Input.FailureThreshold">Failure Threshold</label>
-                    <input asp-for="Input.FailureThreshold" type="number" />
-                </div>
-                <div class="field">
-                    <label asp-for="Input.RecoveryThreshold">Recovery Threshold</label>
-                    <input asp-for="Input.RecoveryThreshold" type="number" />
+                <div class="grid gap-1.5">
+                    <label class="text-[0.78rem] font-semibold text-muted-foreground tracking-wide uppercase" asp-for="Input.DisplayOrder">Display Order</label>
+                    <input class="w-full px-3 py-2.5 rounded-md border border-border bg-background text-foreground text-[0.88rem] focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all" asp-for="Input.DisplayOrder" type="number" />
                 </div>
             </div>
         </div>
 
-        <div class="form-section">
-            <h3 class="form-section-title">Connection</h3>
-            <div class="form-grid two-up">
-                <div class="field">
-                    <label asp-for="Input.Url">URL</label>
-                    <input asp-for="Input.Url" />
+        <div class="pt-6 border-t border-border">
+            <h3 class="mb-4 font-display text-[0.9rem] font-bold tracking-tight">Monitoring</h3>
+            <div class="grid grid-cols-2 gap-4 max-md:grid-cols-1">
+                <div class="grid gap-1.5">
+                    <label class="text-[0.78rem] font-semibold text-muted-foreground tracking-wide uppercase" asp-for="Input.MonitorType">Monitor Type</label>
+                    <select class="w-full px-3 py-2.5 rounded-md border border-border bg-background text-foreground text-[0.88rem] focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all" asp-for="Input.MonitorType" asp-items="Html.GetEnumSelectList<StatusPageSharp.Domain.Enums.MonitorType>()"></select>
                 </div>
-                <div class="field">
-                    <label asp-for="Input.HttpMethod">HTTP Method</label>
-                    <input asp-for="Input.HttpMethod" />
+                <div class="grid gap-1.5">
+                    <label class="text-[0.78rem] font-semibold text-muted-foreground tracking-wide uppercase" asp-for="Input.CheckPeriodSeconds">Check Period (sec)</label>
+                    <input class="w-full px-3 py-2.5 rounded-md border border-border bg-background text-foreground text-[0.88rem] focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all" asp-for="Input.CheckPeriodSeconds" type="number" />
                 </div>
-                <div class="field">
-                    <label asp-for="Input.Host">Host</label>
-                    <input asp-for="Input.Host" />
+                <div class="grid gap-1.5">
+                    <label class="text-[0.78rem] font-semibold text-muted-foreground tracking-wide uppercase" asp-for="Input.TimeoutSeconds">Timeout (sec)</label>
+                    <input class="w-full px-3 py-2.5 rounded-md border border-border bg-background text-foreground text-[0.88rem] focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all" asp-for="Input.TimeoutSeconds" type="number" />
                 </div>
-                <div class="field">
-                    <label asp-for="Input.Port">Port</label>
-                    <input asp-for="Input.Port" type="number" />
+                <div class="grid gap-1.5">
+                    <label class="text-[0.78rem] font-semibold text-muted-foreground tracking-wide uppercase" asp-for="Input.RawRetentionDaysOverride">Retention Override (days)</label>
+                    <input class="w-full px-3 py-2.5 rounded-md border border-border bg-background text-foreground text-[0.88rem] focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all" asp-for="Input.RawRetentionDaysOverride" type="number" />
+                </div>
+                <div class="grid gap-1.5">
+                    <label class="text-[0.78rem] font-semibold text-muted-foreground tracking-wide uppercase" asp-for="Input.FailureThreshold">Failure Threshold</label>
+                    <input class="w-full px-3 py-2.5 rounded-md border border-border bg-background text-foreground text-[0.88rem] focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all" asp-for="Input.FailureThreshold" type="number" />
+                </div>
+                <div class="grid gap-1.5">
+                    <label class="text-[0.78rem] font-semibold text-muted-foreground tracking-wide uppercase" asp-for="Input.RecoveryThreshold">Recovery Threshold</label>
+                    <input class="w-full px-3 py-2.5 rounded-md border border-border bg-background text-foreground text-[0.88rem] focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all" asp-for="Input.RecoveryThreshold" type="number" />
                 </div>
             </div>
         </div>
 
-        <div class="form-section">
-            <h3 class="form-section-title">Validation</h3>
-            <div class="form-grid two-up">
-                <div class="field">
-                    <label asp-for="Input.ExpectedStatusCodes">Expected Status Codes</label>
-                    <input asp-for="Input.ExpectedStatusCodes" />
+        <div class="pt-6 border-t border-border">
+            <h3 class="mb-4 font-display text-[0.9rem] font-bold tracking-tight">Connection</h3>
+            <div class="grid grid-cols-2 gap-4 max-md:grid-cols-1">
+                <div class="grid gap-1.5">
+                    <label class="text-[0.78rem] font-semibold text-muted-foreground tracking-wide uppercase" asp-for="Input.Url">URL</label>
+                    <input class="w-full px-3 py-2.5 rounded-md border border-border bg-background text-foreground text-[0.88rem] focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all" asp-for="Input.Url" />
                 </div>
-                <div class="field">
-                    <label asp-for="Input.ExpectedResponseSubstring">Expected Response</label>
-                    <input asp-for="Input.ExpectedResponseSubstring" />
+                <div class="grid gap-1.5">
+                    <label class="text-[0.78rem] font-semibold text-muted-foreground tracking-wide uppercase" asp-for="Input.HttpMethod">HTTP Method</label>
+                    <input class="w-full px-3 py-2.5 rounded-md border border-border bg-background text-foreground text-[0.88rem] focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all" asp-for="Input.HttpMethod" />
                 </div>
-                <div class="field">
-                    <label asp-for="Input.VerifyTlsCertificate">Verify TLS Certificate</label>
-                    <select asp-for="Input.VerifyTlsCertificate">
+                <div class="grid gap-1.5">
+                    <label class="text-[0.78rem] font-semibold text-muted-foreground tracking-wide uppercase" asp-for="Input.Host">Host</label>
+                    <input class="w-full px-3 py-2.5 rounded-md border border-border bg-background text-foreground text-[0.88rem] focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all" asp-for="Input.Host" />
+                </div>
+                <div class="grid gap-1.5">
+                    <label class="text-[0.78rem] font-semibold text-muted-foreground tracking-wide uppercase" asp-for="Input.Port">Port</label>
+                    <input class="w-full px-3 py-2.5 rounded-md border border-border bg-background text-foreground text-[0.88rem] focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all" asp-for="Input.Port" type="number" />
+                </div>
+            </div>
+        </div>
+
+        <div class="pt-6 border-t border-border">
+            <h3 class="mb-4 font-display text-[0.9rem] font-bold tracking-tight">Validation</h3>
+            <div class="grid grid-cols-2 gap-4 max-md:grid-cols-1">
+                <div class="grid gap-1.5">
+                    <label class="text-[0.78rem] font-semibold text-muted-foreground tracking-wide uppercase" asp-for="Input.ExpectedStatusCodes">Expected Status Codes</label>
+                    <input class="w-full px-3 py-2.5 rounded-md border border-border bg-background text-foreground text-[0.88rem] focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all" asp-for="Input.ExpectedStatusCodes" />
+                </div>
+                <div class="grid gap-1.5">
+                    <label class="text-[0.78rem] font-semibold text-muted-foreground tracking-wide uppercase" asp-for="Input.ExpectedResponseSubstring">Expected Response</label>
+                    <input class="w-full px-3 py-2.5 rounded-md border border-border bg-background text-foreground text-[0.88rem] focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all" asp-for="Input.ExpectedResponseSubstring" />
+                </div>
+                <div class="grid gap-1.5">
+                    <label class="text-[0.78rem] font-semibold text-muted-foreground tracking-wide uppercase" asp-for="Input.VerifyTlsCertificate">Verify TLS Certificate</label>
+                    <select class="w-full px-3 py-2.5 rounded-md border border-border bg-background text-foreground text-[0.88rem] focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all" asp-for="Input.VerifyTlsCertificate">
                         <option value="true">Verify</option>
                         <option value="false">Skip verification</option>
                     </select>
@@ -119,23 +121,24 @@
             </div>
         </div>
 
-        <div class="form-section">
-            <h3 class="form-section-title">Advanced</h3>
-            <div class="form-grid two-up">
-                <div class="field">
-                    <label asp-for="Input.RequestHeadersJson">Request Headers (JSON)</label>
-                    <textarea asp-for="Input.RequestHeadersJson"></textarea>
+        <div class="pt-6 border-t border-border">
+            <h3 class="mb-4 font-display text-[0.9rem] font-bold tracking-tight">Advanced</h3>
+            <div class="grid grid-cols-2 gap-4 max-md:grid-cols-1">
+                <div class="grid gap-1.5">
+                    <label class="text-[0.78rem] font-semibold text-muted-foreground tracking-wide uppercase" asp-for="Input.RequestHeadersJson">Request Headers (JSON)</label>
+                    <textarea class="w-full px-3 py-2.5 rounded-md border border-border bg-background text-foreground text-[0.88rem] focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all min-h-28 resize-y" asp-for="Input.RequestHeadersJson"></textarea>
                 </div>
-                <div class="field">
-                    <label asp-for="Input.RequestBody">Request Body</label>
-                    <textarea asp-for="Input.RequestBody"></textarea>
+                <div class="grid gap-1.5">
+                    <label class="text-[0.78rem] font-semibold text-muted-foreground tracking-wide uppercase" asp-for="Input.RequestBody">Request Body</label>
+                    <textarea class="w-full px-3 py-2.5 rounded-md border border-border bg-background text-foreground text-[0.88rem] focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all min-h-28 resize-y" asp-for="Input.RequestBody"></textarea>
                 </div>
             </div>
         </div>
 
-        <div class="button-row">
-            <button class="button" type="submit">Save Service</button>
-            <a class="button-secondary" asp-page="/Admin/Services/Index">Back</a>
+        <div class="flex flex-wrap gap-3">
+            <button class="inline-flex items-center justify-center rounded-md bg-primary text-primary-foreground px-4 py-2 text-[0.82rem] font-semibold hover:opacity-90 transition-all hover:-translate-y-px shadow-sm cursor-pointer" type="submit">Save Service</button>
+            <a class="inline-flex items-center justify-center rounded-md bg-primary/10 text-primary border border-primary/10 px-4 py-2 text-[0.82rem] font-semibold hover:bg-primary/15 transition-colors"
+               asp-page="/Admin/Services/Index">Back</a>
         </div>
     </form>
 </section>

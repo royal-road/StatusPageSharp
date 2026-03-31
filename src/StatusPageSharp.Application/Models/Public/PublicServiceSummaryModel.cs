@@ -9,5 +9,6 @@ public sealed record PublicServiceSummaryModel(
     string? Description,
     ServiceStatus Status,
     int? LastLatencyMilliseconds,
-    decimal? LastThirtyDayUptimePercentage
+    decimal? LastThirtyDayUptimePercentage,
+    IReadOnlyList<DailyStatusModel> DailyStatuses
 );

@@ -4,11 +4,10 @@
     ViewData["Title"] = "System Status";
 }
 
-<section class="hero-card">
+<section class="hero-section flex items-center justify-between gap-8 max-md:flex-col max-md:items-start">
     <div>
-        <p class="eyebrow">Current Status</p>
-        <h1>All systems are tracked from a single status surface.</h1>
-        <p class="lead">Live component health, active incidents, scheduled maintenance, latency history, and monthly SLA snapshots stay in one place.</p>
+        <h1 class="text-[clamp(2rem,4vw,3.25rem)] text-foreground mb-3">System Status</h1>
+        <p class="max-w-lg text-muted-foreground leading-relaxed text-[0.95rem]">Live component health, active incidents, and scheduled maintenance — all in one place.</p>
     </div>
     <div class="status-chip @StatusDisplayHelper.ToCssClass(Model.SiteSummary.SiteStatus)">
         @StatusDisplayHelper.ToLabel(Model.SiteSummary.SiteStatus)
@@ -17,18 +16,19 @@
 
 @if (Model.SiteSummary.ActiveIncidents.Count > 0)
 {
-    <section class="section-card">
-        <div class="section-header">
-            <h2>Active Incidents</h2>
-            <a class="section-link" asp-page="/Maintenance/Index">View Maintenance</a>
+    <section class="obsidian-card p-6">
+        <div class="flex items-baseline justify-between gap-4 mb-5">
+            <h2 class="text-base font-semibold tracking-tight m-0">Active Incidents</h2>
+            <a class="text-primary text-sm font-medium hover:opacity-80 transition-opacity" asp-page="/Maintenance/Index">View Maintenance</a>
         </div>
-        <div class="incident-grid">
+        <div class="grid gap-3 grid-cols-[repeat(auto-fit,minmax(280px,1fr))]">
             @foreach (var incident in Model.SiteSummary.ActiveIncidents)
             {
-                <a class="incident-card" asp-page="/Incidents/Details" asp-route-id="@incident.Id">
-                    <strong>@incident.Title</strong>
-                    <p>@incident.Summary</p>
-                    <span>Started @incident.StartedUtc.ToLocalTime().ToString("g")</span>
+                <a class="obsidian-card-elevated group p-5"
+                   asp-page="/Incidents/Details" asp-route-id="@incident.Id">
+                    <strong class="text-[0.9rem] font-semibold block mb-1.5 group-hover:text-primary transition-colors">@incident.Title</strong>
+                    <p class="m-0 text-muted-foreground text-[0.84rem] leading-relaxed">@incident.Summary</p>
+                    <span class="block mt-2 text-muted-foreground/50 font-mono text-[0.72rem]">Started @incident.StartedUtc.ToLocalTime().ToString("g")</span>
                 </a>
             }
         </div>
@@ -37,57 +37,70 @@
 
 @if (Model.SiteSummary.ActiveMaintenance.Count > 0)
 {
-    <section class="section-card">
-        <div class="section-header">
-            <h2>Active Maintenance</h2>
-            <a class="section-link" asp-page="/Maintenance/Index">All Maintenance</a>
+    <section class="obsidian-card p-6">
+        <div class="flex items-baseline justify-between gap-4 mb-5">
+            <h2 class="text-base font-semibold tracking-tight m-0">Active Maintenance</h2>
+            <a class="text-primary text-sm font-medium hover:opacity-80 transition-opacity" asp-page="/Maintenance/Index">All Maintenance</a>
         </div>
-        <div class="maintenance-grid">
+        <div class="grid gap-3 grid-cols-[repeat(auto-fit,minmax(280px,1fr))]">
             @foreach (var maintenance in Model.SiteSummary.ActiveMaintenance)
             {
-                <article class="maintenance-card">
-                    <strong>@maintenance.Title</strong>
-                    <p>@maintenance.Summary</p>
-                    <span>@maintenance.StartsUtc.ToLocalTime().ToString("g") - @maintenance.EndsUtc.ToLocalTime().ToString("g")</span>
+                <article class="obsidian-card-elevated p-5">
+                    <strong class="text-[0.9rem] font-semibold block mb-1.5">@maintenance.Title</strong>
+                    <p class="m-0 text-muted-foreground text-[0.84rem] leading-relaxed">@maintenance.Summary</p>
+                    <span class="block mt-2 text-muted-foreground/50 font-mono text-[0.72rem]">@maintenance.StartsUtc.ToLocalTime().ToString("g") – @maintenance.EndsUtc.ToLocalTime().ToString("g")</span>
                 </article>
             }
         </div>
     </section>
 }
 
-<section class="section-card">
-    <div class="section-header">
-        <h2>Components</h2>
-        <span class="muted">@Model.SiteSummary.Groups.Count group(s)</span>
+<section class="obsidian-card p-6">
+    <div class="flex items-baseline justify-between gap-4 mb-5">
+        <h2 class="text-base font-semibold tracking-tight m-0">Components</h2>
+        <span class="text-muted-foreground/60 text-sm font-mono">@Model.SiteSummary.Groups.Count group(s)</span>
     </div>
     @foreach (var group in Model.SiteSummary.Groups)
     {
-        <div class="group-card">
-            <div class="group-header">
+        <div class="mt-5 first:mt-0 p-5 rounded-xl bg-secondary/40 border border-white/[0.03]">
+            <div class="flex items-start justify-between gap-4 pb-4 border-b border-border mb-1 max-md:flex-col">
                 <div>
-                    <h3>@group.Name</h3>
+                    <h3 class="m-0 font-semibold text-[0.95rem]">@group.Name</h3>
                     @if (!string.IsNullOrWhiteSpace(group.Description))
                     {
-                        <p>@group.Description</p>
+                        <p class="mt-1 mb-0 text-muted-foreground/70 text-[0.84rem]">@group.Description</p>
                     }
                 </div>
                 <span class="status-pill @StatusDisplayHelper.ToCssClass(group.Status)">@StatusDisplayHelper.ToLabel(group.Status)</span>
             </div>
-            <div class="service-list">
+            <div class="service-grid">
                 @foreach (var service in group.Services)
                 {
-                    <a class="service-row" asp-page="/Services/Details" asp-route-slug="@service.Slug">
-                        <div class="service-name">
-                            <strong>@service.Name</strong>
+                    var startDay = DateOnly.FromDateTime(DateTime.UtcNow.Date.AddDays(-29));
+                    var dailyLookup = service.DailyStatuses.ToDictionary(d => d.Day, d => d.IsOperational);
+
+                    <a class="service-row"
+                       asp-page="/Services/Details" asp-route-slug="@service.Slug">
+                        <div class="min-w-0">
+                            <strong class="text-[0.88rem] font-semibold block truncate">@service.Name</strong>
                             @if (!string.IsNullOrWhiteSpace(service.Description))
                             {
-                                <span>@service.Description</span>
+                                <span class="text-muted-foreground/60 text-[0.78rem] block mt-0.5 truncate">@service.Description</span>
                             }
                         </div>
-                        <div class="service-metrics">
-                            <span class="status-pill @StatusDisplayHelper.ToCssClass(service.Status)">@StatusDisplayHelper.ToLabel(service.Status)</span>
-                            <span>@(service.LastLatencyMilliseconds?.ToString() ?? "--") ms</span>
-                            <span>@(service.LastThirtyDayUptimePercentage?.ToString("0.00") ?? "--")%</span>
+                        <div class="dot-matrix max-md:hidden" title="30-day uptime: @(service.LastThirtyDayUptimePercentage?.ToString("0.00") ?? "--")%">
+                            @for (var i = 0; i < 30; i++)
+                            {
+                                var day = startDay.AddDays(i);
+                                var hasData = dailyLookup.TryGetValue(day, out var isOperational);
+                                var dotClass = !hasData ? "dot-none" : isOperational ? "dot-ok" : "dot-bad";
+                                <div class="dot-matrix-dot @dotClass" title="@day.ToString("MMM d")"></div>
+                            }
+                        </div>
+                        <span class="status-pill @StatusDisplayHelper.ToCssClass(service.Status)">@StatusDisplayHelper.ToLabel(service.Status)</span>
+                        <div class="flex items-center gap-3 font-mono text-[0.75rem] text-muted-foreground/60 tracking-tight max-md:hidden">
+                            <span>@(service.LastLatencyMilliseconds?.ToString() ?? "--")<span class="text-muted-foreground/40">ms</span></span>
+                            <span>@(service.LastThirtyDayUptimePercentage?.ToString("0.00") ?? "--")<span class="text-muted-foreground/40">%</span></span>
                         </div>
                     </a>
                 }

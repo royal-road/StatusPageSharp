@@ -20,4 +20,20 @@
     <ProjectReference Include="..\StatusPageSharp.Application\StatusPageSharp.Application.csproj" />
     <ProjectReference Include="..\StatusPageSharp.Infrastructure\StatusPageSharp.Infrastructure.csproj" />
   </ItemGroup>
+
+  <!-- Tailwind CSS v4 build -->
+  <Target
+    Name="NpmRestore"
+    BeforeTargets="BuildTailwind"
+    Inputs="package.json"
+    Outputs="node_modules/.package-lock.json"
+  >
+    <Exec Command="npm ci --prefer-offline" WorkingDirectory="$(MSBuildProjectDirectory)" />
+  </Target>
+  <Target Name="BuildTailwind" BeforeTargets="Build">
+    <Exec
+      Command="npx @tailwindcss/cli -i ./Styles/app.css -o ./wwwroot/css/site.css --minify"
+      WorkingDirectory="$(MSBuildProjectDirectory)"
+    />
+  </Target>
 </Project>

@@ -4,16 +4,14 @@
     ViewData["Title"] = "Error";
 }
 
-<section class="hero-card">
-    <div>
-        <p class="eyebrow">Error</p>
-        <h1>Something went wrong</h1>
-        <p class="lead">An error occurred while processing your request.</p>
-        @if (Model.ShowRequestId)
-        {
-            <p class="muted" style="margin-top: 1rem;">
-                <strong>Request ID:</strong> <code>@Model.RequestId</code>
-            </p>
-        }
-    </div>
+<section class="hero-section">
+    <span class="inline-block font-mono text-[0.72rem] font-medium tracking-[0.14em] uppercase text-destructive/80 mb-2">Error</span>
+    <h1 class="text-[clamp(2rem,4vw,3.25rem)] text-foreground mb-3">Something went wrong</h1>
+    <p class="max-w-lg text-muted-foreground leading-relaxed text-[0.95rem]">An error occurred while processing your request.</p>
+    @if (Model.ShowRequestId)
+    {
+        <p class="mt-5 text-muted-foreground/60 text-sm">
+            <strong class="text-muted-foreground">Request ID:</strong> <code>@Model.RequestId</code>
+        </p>
+    }
 </section>

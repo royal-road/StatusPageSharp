@@ -4,34 +4,40 @@
     ViewData["Title"] = "Services";
 }
 
-<section class="section-card">
-    <div class="section-header">
-        <h1>Services</h1>
-        <a class="button" asp-page="/Admin/Services/Create">Create Service</a>
+<section class="rounded-2xl border border-border bg-card p-6 shadow-sm">
+    <div class="flex items-baseline justify-between gap-4 mb-4">
+        <h1 class="text-2xl font-display font-bold tracking-tight m-0">Services</h1>
+        <a class="inline-flex items-center justify-center rounded-md bg-primary text-primary-foreground px-4 py-2 text-[0.82rem] font-semibold hover:opacity-90 transition-all hover:-translate-y-px shadow-sm"
+           asp-page="/Admin/Services/Create">Create Service</a>
     </div>
-    <table class="table">
-        <thead>
-            <tr>
-                <th>Name</th>
-                <th>Group</th>
-                <th>Monitor</th>
-                <th>Period</th>
-                <th>Status</th>
-                <th></th>
-            </tr>
-        </thead>
-        <tbody>
-        @foreach (var service in Model.Services)
-        {
-            <tr>
-                <td>@service.Name</td>
-                <td>@service.GroupName</td>
-                <td>@service.MonitorType</td>
-                <td>@service.CheckPeriodSeconds sec</td>
-                <td>@(service.IsEnabled ? "Enabled" : "Disabled")</td>
-                <td><a class="button-secondary" asp-page="/Admin/Services/Edit" asp-route-id="@service.Id">Edit</a></td>
-            </tr>
-        }
-        </tbody>
-    </table>
+    <div class="overflow-x-auto">
+        <table class="w-full border-collapse">
+            <thead>
+                <tr>
+                    <th class="px-3 py-2.5 border-b border-white/10 text-left font-mono text-[0.7rem] font-medium tracking-[0.08em] uppercase text-muted-foreground/60">Name</th>
+                    <th class="px-3 py-2.5 border-b border-white/10 text-left font-mono text-[0.7rem] font-medium tracking-[0.08em] uppercase text-muted-foreground/60">Group</th>
+                    <th class="px-3 py-2.5 border-b border-white/10 text-left font-mono text-[0.7rem] font-medium tracking-[0.08em] uppercase text-muted-foreground/60">Monitor</th>
+                    <th class="px-3 py-2.5 border-b border-white/10 text-left font-mono text-[0.7rem] font-medium tracking-[0.08em] uppercase text-muted-foreground/60">Period</th>
+                    <th class="px-3 py-2.5 border-b border-white/10 text-left font-mono text-[0.7rem] font-medium tracking-[0.08em] uppercase text-muted-foreground/60">Status</th>
+                    <th class="px-3 py-2.5 border-b border-white/10"></th>
+                </tr>
+            </thead>
+            <tbody>
+            @foreach (var service in Model.Services)
+            {
+                <tr class="transition-colors hover:bg-white/[0.02]">
+                    <td class="px-3 py-3 border-b border-white/[0.03] text-[0.88rem]">@service.Name</td>
+                    <td class="px-3 py-3 border-b border-white/[0.03] text-[0.88rem]">@service.GroupName</td>
+                    <td class="px-3 py-3 border-b border-white/[0.03] text-[0.88rem]">@service.MonitorType</td>
+                    <td class="px-3 py-3 border-b border-white/[0.03] text-[0.88rem]">@service.CheckPeriodSeconds sec</td>
+                    <td class="px-3 py-3 border-b border-white/[0.03] text-[0.88rem]">@(service.IsEnabled ? "Enabled" : "Disabled")</td>
+                    <td class="px-3 py-3 border-b border-white/[0.03]">
+                        <a class="inline-flex items-center justify-center rounded-md bg-primary/10 text-primary border border-primary/10 px-2.5 py-1 text-[0.78rem] font-semibold hover:bg-primary/15 transition-colors"
+                           asp-page="/Admin/Services/Edit" asp-route-id="@service.Id">Edit</a>
+                    </td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
 </section>

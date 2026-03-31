@@ -30,6 +30,7 @@ public sealed class PublicStatusService(ApplicationDbContext dbContext, IClock c
             cancellationToken
         );
         var uptimeLookup = await GetLastThirtyDayUptimeLookupAsync(cancellationToken);
+        var dailyStatusLookup = await GetDailyStatusLookupAsync(cancellationToken);
 
         var groupModels = groups
             .Select(group =>
@@ -53,7 +54,10 @@ public sealed class PublicStatusService(ApplicationDbContext dbContext, IClock c
                             service.LastLatencyMilliseconds,
                             uptimeLookup.TryGetValue(service.Id, out var uptimePercentage)
                                 ? uptimePercentage
-                                : null
+                                : null,
+                            dailyStatusLookup.TryGetValue(service.Id, out var dailyStatuses)
+                                ? dailyStatuses
+                                : []
                         );
                     })
                     .ToList();
@@ -309,6 +313,41 @@ public sealed class PublicStatusService(ApplicationDbContext dbContext, IClock c
                     ? (decimal?)null
                     : Math.Round(item.SuccessfulChecks * 100m / item.EligibleChecks, 2)
         );
+    }
+
+    private async Task<Dictionary<Guid, IReadOnlyList<DailyStatusModel>>> GetDailyStatusLookupAsync(
+        CancellationToken cancellationToken
+    )
+    {
+        var startDay = DateOnly.FromDateTime(clock.UtcNow.Date.AddDays(-29));
+        var rollups = await dbContext
+            .DailyServiceRollups.AsNoTracking()
+            .Where(rollup => rollup.Day >= startDay)
+            .Select(rollup => new
+            {
+                rollup.ServiceId,
+                rollup.Day,
+                rollup.AvailabilityEligibleChecks,
+                rollup.AvailabilitySuccessChecks,
+            })
+            .ToListAsync(cancellationToken);
+
+        return rollups
+            .GroupBy(rollup => rollup.ServiceId)
+            .ToDictionary(
+                group => group.Key,
+                group =>
+                    (IReadOnlyList<DailyStatusModel>)
+                        group
+                            .OrderBy(rollup => rollup.Day)
+                            .Select(rollup => new DailyStatusModel(
+                                rollup.Day,
+                                rollup.AvailabilityEligibleChecks == 0
+                                    || rollup.AvailabilitySuccessChecks
+                                        == rollup.AvailabilityEligibleChecks
+                            ))
+                            .ToList()
+            );
     }
 
     private async Task<IReadOnlyList<PublicIncidentSummaryModel>> GetIncidentSummariesAsync(

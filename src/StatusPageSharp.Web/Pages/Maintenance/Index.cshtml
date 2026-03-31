@@ -4,28 +4,35 @@
     ViewData["Title"] = "Maintenance";
 }
 
-<section class="hero-card compact">
+<section class="hero-section flex items-end justify-between gap-8 max-md:flex-col max-md:items-start">
     <div>
-        <p class="eyebrow">Maintenance</p>
-        <h1>Scheduled maintenance windows</h1>
-        <p class="lead">Maintenance windows do not count against uptime and they suppress automatic incident creation for the selected components.</p>
+        <span class="inline-block font-mono text-[0.72rem] font-medium tracking-[0.14em] uppercase text-maintenance/80 mb-2">Maintenance</span>
+        <h1 class="text-[clamp(2rem,4vw,3.25rem)] text-foreground mb-3">Scheduled Windows</h1>
+        <p class="max-w-lg text-muted-foreground leading-relaxed text-[0.95rem]">Maintenance windows do not count against uptime and suppress automatic incident creation for selected components.</p>
     </div>
 </section>
 
-<section class="section-card">
-    <div class="section-header">
-        <h2>Windows</h2>
-        <span class="muted">@Model.MaintenanceItems.Count item(s)</span>
+<section class="obsidian-card p-6">
+    <div class="flex items-baseline justify-between gap-4 mb-5">
+        <h2 class="text-base font-semibold tracking-tight m-0">Windows</h2>
+        <span class="text-muted-foreground/50 text-sm font-mono">@Model.MaintenanceItems.Count item(s)</span>
     </div>
-    <div class="maintenance-grid">
-        @foreach (var item in Model.MaintenanceItems)
-        {
-            <article class="maintenance-card">
-                <strong>@item.Title</strong>
-                <p>@item.Summary</p>
-                <span>@item.StartsUtc.ToLocalTime().ToString("g") - @item.EndsUtc.ToLocalTime().ToString("g")</span>
-                <small>@string.Join(", ", item.ServiceNames)</small>
-            </article>
-        }
-    </div>
+    @if (Model.MaintenanceItems.Count == 0)
+    {
+        <p class="text-muted-foreground/50 text-center py-8 text-sm">No scheduled maintenance windows.</p>
+    }
+    else
+    {
+        <div class="grid gap-3 grid-cols-[repeat(auto-fit,minmax(280px,1fr))]">
+            @foreach (var item in Model.MaintenanceItems)
+            {
+                <article class="obsidian-card-elevated p-5">
+                    <strong class="text-[0.88rem] font-semibold block mb-1.5">@item.Title</strong>
+                    <p class="m-0 text-muted-foreground/70 text-[0.84rem] leading-relaxed">@item.Summary</p>
+                    <span class="block mt-2.5 text-muted-foreground/50 font-mono text-[0.72rem]">@item.StartsUtc.ToLocalTime().ToString("g") – @item.EndsUtc.ToLocalTime().ToString("g")</span>
+                    <span class="block mt-1 text-muted-foreground/40 text-[0.75rem]">@string.Join(", ", item.ServiceNames)</span>
+                </article>
+            }
+        </div>
+    }
 </section>

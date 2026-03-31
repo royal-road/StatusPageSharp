@@ -4,32 +4,30 @@
     ViewData["Title"] = Model.Incident.Title;
 }
 
-<section class="hero-card compact">
+<section class="hero-section flex items-end justify-between gap-8 max-md:flex-col max-md:items-start">
     <div>
-        <p class="eyebrow">Incident</p>
-        <h1>@Model.Incident.Title</h1>
-        <p class="lead">@Model.Incident.Summary</p>
+        <span class="inline-block font-mono text-[0.72rem] font-medium tracking-[0.14em] uppercase text-destructive/80 mb-2">Incident</span>
+        <h1 class="text-[clamp(2rem,4vw,3.25rem)] text-foreground mb-3">@Model.Incident.Title</h1>
+        <p class="max-w-lg text-muted-foreground leading-relaxed text-[0.95rem]">@Model.Incident.Summary</p>
     </div>
-    <div class="status-stack">
-        <span class="metric-copy">Started @Model.Incident.StartedUtc.ToLocalTime().ToString("g")</span>
-        <span class="metric-copy">Resolved @(Model.Incident.ResolvedUtc?.ToLocalTime().ToString("g") ?? "Ongoing")</span>
+    <div class="grid justify-items-end gap-1.5 max-md:justify-items-start">
+        <span class="font-mono text-[0.75rem] text-muted-foreground/60">Started @Model.Incident.StartedUtc.ToLocalTime().ToString("g")</span>
+        <span class="font-mono text-[0.75rem] text-muted-foreground/60">Resolved @(Model.Incident.ResolvedUtc?.ToLocalTime().ToString("g") ?? "Ongoing")</span>
     </div>
 </section>
 
-<section class="section-card">
-    <div class="section-header">
-        <h2>Affected Services</h2>
-    </div>
-    <div class="service-list">
+<section class="obsidian-card p-6">
+    <h2 class="text-base font-semibold tracking-tight m-0 mb-5">Affected Services</h2>
+    <div class="grid gap-0">
         @foreach (var service in Model.Incident.AffectedServices)
         {
-            <div class="service-row static">
-                <div class="service-name">
-                    <strong>@service.ServiceName</strong>
-                    <span>@service.ImpactLevel</span>
+            <div class="flex items-center justify-between gap-4 px-3 py-3.5 rounded-lg border border-transparent hover:bg-white/[0.015] transition-colors max-md:flex-col max-md:items-start">
+                <div class="grid gap-0.5">
+                    <strong class="text-[0.88rem] font-semibold">@service.ServiceName</strong>
+                    <span class="text-muted-foreground/60 text-[0.78rem]">@service.ImpactLevel</span>
                 </div>
-                <div class="service-metrics">
-                    <span>@(service.IsResolved ? "Recovered" : "Active")</span>
+                <div class="inline-flex items-center gap-3 font-mono text-[0.75rem] text-muted-foreground/60">
+                    <span class="@(service.IsResolved ? "text-ok" : "text-bad")">@(service.IsResolved ? "Recovered" : "Active")</span>
                     <span>@(service.ResolvedUtc?.ToLocalTime().ToString("g") ?? "--")</span>
                 </div>
             </div>
@@ -37,19 +35,19 @@
     </div>
 </section>
 
-<section class="section-card">
-    <div class="section-header">
-        <h2>Timeline</h2>
-    </div>
-    <div class="timeline">
+<section class="obsidian-card p-6">
+    <h2 class="text-base font-semibold tracking-tight m-0 mb-5">Timeline</h2>
+    <div class="timeline-wrap grid gap-0">
+        <div class="timeline-line"></div>
         @foreach (var item in Model.Incident.Events)
         {
-            <article class="timeline-item">
-                <strong>@item.Message</strong>
-                <span>@item.CreatedUtc.ToLocalTime().ToString("g")</span>
+            <article class="timeline-entry relative py-4 border-b border-white/[0.03] last:border-b-0">
+                <div class="timeline-node"></div>
+                <strong class="text-[0.88rem] font-semibold block">@item.Message</strong>
+                <span class="block mt-1 text-muted-foreground/50 font-mono text-[0.72rem]">@item.CreatedUtc.ToLocalTime().ToString("g")</span>
                 @if (!string.IsNullOrWhiteSpace(item.Body))
                 {
-                    <p>@item.Body</p>
+                    <p class="mt-2.5 mb-0 whitespace-pre-wrap text-muted-foreground/70 leading-relaxed text-[0.86rem]">@item.Body</p>
                 }
             </article>
         }
@@ -58,10 +56,8 @@
 
 @if (!string.IsNullOrWhiteSpace(Model.Incident.Postmortem))
 {
-    <section class="section-card">
-        <div class="section-header">
-            <h2>Postmortem</h2>
-        </div>
-        <div class="postmortem-body">@Model.Incident.Postmortem</div>
+    <section class="obsidian-card p-6">
+        <h2 class="text-base font-semibold tracking-tight m-0 mb-5">Postmortem</h2>
+        <div class="whitespace-pre-wrap text-muted-foreground/70 leading-relaxed text-[0.86rem]">@Model.Incident.Postmortem</div>
     </section>
 }

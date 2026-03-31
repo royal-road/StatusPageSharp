@@ -1,0 +1,38 @@
+@page
+@model EmailModel
+@{
+    ViewData["Title"] = "Manage Email";
+    ViewData["ActivePage"] = ManageNavPages.Email;
+}
+
+<section class="rounded-2xl border border-border bg-card p-6 shadow-sm">
+    <h2 class="text-lg font-bold tracking-tight m-0 mb-4">@ViewData["Title"]</h2>
+    <partial name="_StatusMessage" for="StatusMessage" />
+    <form id="email-form" method="post" class="grid gap-5 max-w-md">
+        <div asp-validation-summary="All" class="text-destructive text-sm" role="alert"></div>
+        <div class="grid gap-1.5">
+            <label class="text-[0.78rem] font-semibold text-muted-foreground tracking-wide uppercase" asp-for="Email">Current email</label>
+            <div class="flex items-center gap-2">
+                <input class="w-full px-3 py-2.5 rounded-md border border-border bg-muted text-muted-foreground text-[0.88rem] cursor-not-allowed" asp-for="Email" disabled />
+                @if (Model.IsEmailConfirmed)
+                {
+                    <span class="text-ok font-bold text-lg" title="Confirmed">&#10003;</span>
+                }
+            </div>
+            @if (!Model.IsEmailConfirmed)
+            {
+                <button id="email-verification" type="submit" asp-page-handler="SendVerificationEmail" class="text-primary text-sm font-medium hover:opacity-80 transition-opacity bg-transparent border-0 cursor-pointer p-0 text-left">Send verification email</button>
+            }
+        </div>
+        <div class="grid gap-1.5">
+            <label class="text-[0.78rem] font-semibold text-muted-foreground tracking-wide uppercase" asp-for="Input.NewEmail">New email</label>
+            <input class="w-full px-3 py-2.5 rounded-md border border-border bg-background text-foreground text-[0.88rem] placeholder:text-muted-foreground/50 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all" asp-for="Input.NewEmail" autocomplete="email" aria-required="true" placeholder="Enter new email" />
+            <span asp-validation-for="Input.NewEmail" class="text-destructive text-xs"></span>
+        </div>
+        <button id="change-email-button" type="submit" asp-page-handler="ChangeEmail" class="w-full inline-flex items-center justify-center rounded-md bg-primary text-primary-foreground px-4 py-2.5 text-[0.88rem] font-semibold hover:opacity-90 transition-all hover:-translate-y-px shadow-sm cursor-pointer">Change email</button>
+    </form>
+</section>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

@@ -8,39 +8,40 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="theme-color" content="#08090d" />
+    <meta name="theme-color" content="#06060B" />
     <title>@ViewData["Title"] - @siteSettings.SiteTitle</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700;12..96,800&family=JetBrains+Mono:wght@400;500&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
 </head>
-<body>
-    <div class="page-shell">
-        <header class="site-header">
-            <div class="shell-bar">
-                <a class="brand" asp-page="/Index">
+<body class="bg-background text-foreground font-body antialiased">
+    <div class="mx-auto w-full max-w-5xl px-5 min-h-screen flex flex-col">
+        <header class="py-6">
+            <nav class="flex items-center justify-between gap-4">
+                <a class="inline-flex items-center gap-2.5 font-semibold tracking-tight text-foreground text-[0.95rem] transition-opacity hover:opacity-80" asp-page="/Index">
                     @if (!string.IsNullOrWhiteSpace(siteSettings.LogoUrl))
                     {
-                        <img class="brand-logo" src="@siteSettings.LogoUrl" alt="@siteSettings.SiteTitle logo" />
+                        <img class="w-7 h-7 rounded-md object-cover" src="@siteSettings.LogoUrl" alt="@siteSettings.SiteTitle logo" />
                     }
                     <span>@siteSettings.SiteTitle</span>
                 </a>
-                <nav class="primary-nav">
-                    <a asp-page="/Index">Status</a>
-                    <a asp-page="/Maintenance/Index">Maintenance</a>
+                <div class="flex items-center gap-0.5 text-[0.84rem] text-muted-foreground">
+                    <a class="nav-link-effect" asp-page="/Index">Status</a>
+                    <a class="nav-link-effect" asp-page="/Maintenance/Index">Maintenance</a>
                     <partial name="_LoginPartial" />
-                </nav>
-            </div>
+                </div>
+            </nav>
+            <div class="mt-4 h-px bg-gradient-to-r from-transparent via-border to-transparent"></div>
         </header>
 
-        <main class="content-shell">
+        <main class="flex-1 grid gap-6 stagger-in">
             @RenderBody()
         </main>
 
-        <footer class="site-footer">
+        <footer class="flex items-center justify-between gap-4 py-8 mt-12 border-t border-border text-xs text-muted-foreground/60 tracking-wide max-md:flex-col max-md:text-center max-md:gap-1">
             <span>&copy; @DateTime.UtcNow.Year @siteSettings.SiteTitle</span>
-            <span>Powered by StatusPageSharp</span>
+            <span class="font-mono text-[0.7rem]">Powered by StatusPageSharp</span>
         </footer>
     </div>
 

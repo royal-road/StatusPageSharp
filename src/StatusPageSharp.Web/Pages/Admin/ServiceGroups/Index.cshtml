@@ -4,53 +4,58 @@
     ViewData["Title"] = "Service Groups";
 }
 
-<section class="section-card">
-    <div class="section-header">
-        <h1>Service Groups</h1>
+<section class="rounded-2xl border border-border bg-card p-6 shadow-sm">
+    <div class="flex items-baseline justify-between gap-4 mb-6">
+        <h1 class="text-2xl font-display font-bold tracking-tight m-0">Service Groups</h1>
     </div>
-    <form method="post" class="form-grid two-up">
-        <div class="field">
-            <label asp-for="Input.Name">Name</label>
-            <input asp-for="Input.Name" />
+    <form method="post" class="grid grid-cols-2 gap-4 max-md:grid-cols-1">
+        <div class="grid gap-1.5">
+            <label class="text-[0.78rem] font-semibold text-muted-foreground tracking-wide uppercase" asp-for="Input.Name">Name</label>
+            <input class="w-full px-3 py-2.5 rounded-md border border-border bg-background text-foreground text-[0.88rem] focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all" asp-for="Input.Name" />
         </div>
-        <div class="field">
-            <label asp-for="Input.Slug">Slug</label>
-            <input asp-for="Input.Slug" />
+        <div class="grid gap-1.5">
+            <label class="text-[0.78rem] font-semibold text-muted-foreground tracking-wide uppercase" asp-for="Input.Slug">Slug</label>
+            <input class="w-full px-3 py-2.5 rounded-md border border-border bg-background text-foreground text-[0.88rem] focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all" asp-for="Input.Slug" />
         </div>
-        <div class="field">
-            <label asp-for="Input.Description">Description</label>
-            <input asp-for="Input.Description" />
+        <div class="grid gap-1.5">
+            <label class="text-[0.78rem] font-semibold text-muted-foreground tracking-wide uppercase" asp-for="Input.Description">Description</label>
+            <input class="w-full px-3 py-2.5 rounded-md border border-border bg-background text-foreground text-[0.88rem] focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all" asp-for="Input.Description" />
         </div>
-        <div class="field">
-            <label asp-for="Input.DisplayOrder">Display Order</label>
-            <input asp-for="Input.DisplayOrder" type="number" />
+        <div class="grid gap-1.5">
+            <label class="text-[0.78rem] font-semibold text-muted-foreground tracking-wide uppercase" asp-for="Input.DisplayOrder">Display Order</label>
+            <input class="w-full px-3 py-2.5 rounded-md border border-border bg-background text-foreground text-[0.88rem] focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all" asp-for="Input.DisplayOrder" type="number" />
         </div>
-        <div class="button-row">
-            <button class="button" type="submit">Create Group</button>
+        <div class="flex flex-wrap gap-3 col-span-full">
+            <button class="inline-flex items-center justify-center rounded-md bg-primary text-primary-foreground px-4 py-2 text-[0.82rem] font-semibold hover:opacity-90 transition-all hover:-translate-y-px shadow-sm cursor-pointer" type="submit">Create Group</button>
         </div>
     </form>
 </section>
 
-<section class="section-card">
-    <table class="table">
-        <thead>
-            <tr>
-                <th>Name</th>
-                <th>Slug</th>
-                <th>Services</th>
-                <th></th>
-            </tr>
-        </thead>
-        <tbody>
-        @foreach (var group in Model.ServiceGroups)
-        {
-            <tr>
-                <td>@group.Name</td>
-                <td>@group.Slug</td>
-                <td>@group.ServiceCount</td>
-                <td><a class="button-secondary" asp-page="/Admin/ServiceGroups/Edit" asp-route-id="@group.Id">Edit</a></td>
-            </tr>
-        }
-        </tbody>
-    </table>
+<section class="rounded-2xl border border-border bg-card p-6 shadow-sm">
+    <div class="overflow-x-auto">
+        <table class="w-full border-collapse">
+            <thead>
+                <tr>
+                    <th class="px-3 py-2.5 border-b border-white/10 text-left font-mono text-[0.7rem] font-medium tracking-[0.08em] uppercase text-muted-foreground/60">Name</th>
+                    <th class="px-3 py-2.5 border-b border-white/10 text-left font-mono text-[0.7rem] font-medium tracking-[0.08em] uppercase text-muted-foreground/60">Slug</th>
+                    <th class="px-3 py-2.5 border-b border-white/10 text-left font-mono text-[0.7rem] font-medium tracking-[0.08em] uppercase text-muted-foreground/60">Services</th>
+                    <th class="px-3 py-2.5 border-b border-white/10"></th>
+                </tr>
+            </thead>
+            <tbody>
+            @foreach (var group in Model.ServiceGroups)
+            {
+                <tr class="transition-colors hover:bg-white/[0.02]">
+                    <td class="px-3 py-3 border-b border-white/[0.03] text-[0.88rem]">@group.Name</td>
+                    <td class="px-3 py-3 border-b border-white/[0.03] text-[0.88rem]">@group.Slug</td>
+                    <td class="px-3 py-3 border-b border-white/[0.03] text-[0.88rem]">@group.ServiceCount</td>
+                    <td class="px-3 py-3 border-b border-white/[0.03]">
+                        <a class="inline-flex items-center justify-center rounded-md bg-primary/10 text-primary border border-primary/10 px-2.5 py-1 text-[0.78rem] font-semibold hover:bg-primary/15 transition-colors"
+                           asp-page="/Admin/ServiceGroups/Edit" asp-route-id="@group.Id">Edit</a>
+                    </td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
 </section>

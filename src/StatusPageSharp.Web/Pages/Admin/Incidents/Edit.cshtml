@@ -4,94 +4,94 @@
     ViewData["Title"] = "Edit Incident";
 }
 
-<section class="section-card">
-    <div class="section-header">
-        <h1>@Model.Incident.Title</h1>
+<section class="rounded-2xl border border-border bg-card p-6 shadow-sm">
+    <div class="flex items-baseline justify-between gap-4 mb-4">
+        <h1 class="text-2xl font-display font-bold tracking-tight m-0">@Model.Incident.Title</h1>
         <span class="status-pill @(Model.Incident.Status == StatusPageSharp.Domain.Enums.IncidentStatus.Open ? "status-bad" : "status-ok")">@Model.Incident.Status</span>
     </div>
-    <p>@Model.Incident.Summary</p>
-    <p class="muted">Started @Model.Incident.StartedUtc.ToLocalTime().ToString("g")</p>
+    <p class="text-foreground text-[0.88rem]">@Model.Incident.Summary</p>
+    <p class="text-muted-foreground text-sm">Started @Model.Incident.StartedUtc.ToLocalTime().ToString("g")</p>
 </section>
 
-<section class="chart-grid">
-    <article class="section-card">
-        <div class="section-header"><h2>Affected Services</h2></div>
-        <div class="service-list">
+<div class="grid gap-5 grid-cols-[repeat(auto-fit,minmax(320px,1fr))]">
+    <article class="rounded-2xl border border-border bg-card p-6 shadow-sm">
+        <h2 class="text-lg font-bold tracking-tight m-0 mb-4">Affected Services</h2>
+        <div class="grid gap-0.5 mb-4">
             @foreach (var service in Model.Incident.AffectedServices)
             {
-                <div class="service-row static">
-                    <div class="service-name">
-                        <strong>@service.ServiceName</strong>
-                        <span>@service.ImpactLevel</span>
+                <div class="flex items-center justify-between gap-4 px-3.5 py-3 rounded-lg max-md:flex-col max-md:items-start">
+                    <div class="grid gap-0.5">
+                        <strong class="text-[0.9rem] font-semibold">@service.ServiceName</strong>
+                        <span class="text-muted-foreground text-[0.8rem]">@service.ImpactLevel</span>
                     </div>
-                    <div class="service-metrics">
-                        <span>@(service.IsResolved ? "Resolved" : "Open")</span>
-                    </div>
+                    <span class="font-mono text-[0.78rem] text-muted-foreground">@(service.IsResolved ? "Resolved" : "Open")</span>
                 </div>
             }
         </div>
-        <form method="post" asp-page-handler="AddService" class="form-grid">
-            <div class="field">
-                <label asp-for="NewServiceId">Add Service</label>
-                <select asp-for="NewServiceId">
+        <form method="post" asp-page-handler="AddService" class="grid gap-4 pt-4 border-t border-border">
+            <div class="grid gap-1.5">
+                <label class="text-[0.78rem] font-semibold text-muted-foreground tracking-wide uppercase" asp-for="NewServiceId">Add Service</label>
+                <select class="w-full px-3 py-2.5 rounded-md border border-border bg-background text-foreground text-[0.88rem] focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all" asp-for="NewServiceId">
                     @foreach (var service in Model.AvailableServices)
                     {
                         <option value="@service.Id">@service.Name</option>
                     }
                 </select>
             </div>
-            <div class="field">
-                <label asp-for="NewServiceImpactLevel">Impact</label>
-                <select asp-for="NewServiceImpactLevel" asp-items="Html.GetEnumSelectList<StatusPageSharp.Domain.Enums.IncidentImpactLevel>()"></select>
+            <div class="grid gap-1.5">
+                <label class="text-[0.78rem] font-semibold text-muted-foreground tracking-wide uppercase" asp-for="NewServiceImpactLevel">Impact</label>
+                <select class="w-full px-3 py-2.5 rounded-md border border-border bg-background text-foreground text-[0.88rem] focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all" asp-for="NewServiceImpactLevel" asp-items="Html.GetEnumSelectList<StatusPageSharp.Domain.Enums.IncidentImpactLevel>()"></select>
             </div>
-            <div class="button-row">
-                <button class="button-secondary" type="submit">Attach Service</button>
+            <div class="flex flex-wrap gap-3">
+                <button class="inline-flex items-center justify-center rounded-md bg-primary/10 text-primary border border-primary/10 px-3.5 py-2 text-[0.82rem] font-semibold hover:bg-primary/15 transition-colors cursor-pointer" type="submit">Attach Service</button>
             </div>
         </form>
     </article>
 
-    <article class="section-card">
-        <div class="section-header"><h2>Add Event</h2></div>
-        <form method="post" asp-page-handler="AddEvent" class="form-grid">
-            <div class="field">
-                <label asp-for="NewEvent.Message">Message</label>
-                <input asp-for="NewEvent.Message" />
+    <article class="rounded-2xl border border-border bg-card p-6 shadow-sm">
+        <h2 class="text-lg font-bold tracking-tight m-0 mb-4">Add Event</h2>
+        <form method="post" asp-page-handler="AddEvent" class="grid gap-4">
+            <div class="grid gap-1.5">
+                <label class="text-[0.78rem] font-semibold text-muted-foreground tracking-wide uppercase" asp-for="NewEvent.Message">Message</label>
+                <input class="w-full px-3 py-2.5 rounded-md border border-border bg-background text-foreground text-[0.88rem] focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all" asp-for="NewEvent.Message" />
             </div>
-            <div class="field">
-                <label asp-for="NewEvent.Body">Details</label>
-                <textarea asp-for="NewEvent.Body"></textarea>
+            <div class="grid gap-1.5">
+                <label class="text-[0.78rem] font-semibold text-muted-foreground tracking-wide uppercase" asp-for="NewEvent.Body">Details</label>
+                <textarea class="w-full px-3 py-2.5 rounded-md border border-border bg-background text-foreground text-[0.88rem] focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all min-h-28 resize-y" asp-for="NewEvent.Body"></textarea>
             </div>
-            <div class="button-row">
-                <button class="button" type="submit">Add Event</button>
+            <div class="flex flex-wrap gap-3">
+                <button class="inline-flex items-center justify-center rounded-md bg-primary text-primary-foreground px-4 py-2 text-[0.82rem] font-semibold hover:opacity-90 transition-all hover:-translate-y-px shadow-sm cursor-pointer" type="submit">Add Event</button>
             </div>
         </form>
     </article>
-</section>
+</div>
 
-<section class="section-card">
-    <div class="section-header"><h2>Resolve</h2></div>
-    <form method="post" asp-page-handler="Resolve" class="form-grid">
-        <div class="field">
-            <label asp-for="Postmortem">Postmortem</label>
-            <textarea asp-for="Postmortem"></textarea>
+<section class="rounded-2xl border border-border bg-card p-6 shadow-sm">
+    <h2 class="text-lg font-bold tracking-tight m-0 mb-4">Resolve</h2>
+    <form method="post" asp-page-handler="Resolve" class="grid gap-4">
+        <div class="grid gap-1.5">
+            <label class="text-[0.78rem] font-semibold text-muted-foreground tracking-wide uppercase" asp-for="Postmortem">Postmortem</label>
+            <textarea class="w-full px-3 py-2.5 rounded-md border border-border bg-background text-foreground text-[0.88rem] focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all min-h-28 resize-y" asp-for="Postmortem"></textarea>
         </div>
-        <div class="button-row">
-            <button class="button-danger" type="submit">Resolve Incident</button>
+        <div class="flex flex-wrap gap-3">
+            <button class="inline-flex items-center justify-center rounded-md bg-destructive/10 text-destructive border border-destructive/10 px-4 py-2 text-[0.82rem] font-semibold hover:bg-destructive/15 transition-colors cursor-pointer" type="submit">Resolve Incident</button>
         </div>
     </form>
 </section>
 
-<section class="section-card">
-    <div class="section-header"><h2>Timeline</h2></div>
-    <div class="timeline">
+<section class="rounded-2xl border border-border bg-card p-6 shadow-sm">
+    <h2 class="text-lg font-bold tracking-tight m-0 mb-4">Timeline</h2>
+    <div class="relative grid gap-0 pl-5 ml-1">
+        <div class="absolute left-0 top-2 bottom-2 w-px bg-gradient-to-b from-primary/60 to-border"></div>
         @foreach (var item in Model.Incident.Events)
         {
-            <article class="timeline-item">
-                <strong>@item.Message</strong>
-                <span>@item.CreatedUtc.ToLocalTime().ToString("g")</span>
+            <article class="relative py-3.5 border-b border-white/[0.03] last:border-b-0">
+                <div class="absolute -left-5 top-[1.1rem] w-[7px] h-[7px] rounded-full bg-primary/60 -translate-x-1/2 shadow-[0_0_0_3px_var(--color-card)]"></div>
+                <strong class="text-[0.9rem] font-semibold">@item.Message</strong>
+                <span class="block mt-1 text-muted-foreground/60 font-mono text-xs">@item.CreatedUtc.ToLocalTime().ToString("g")</span>
                 @if (!string.IsNullOrWhiteSpace(item.Body))
                 {
-                    <p>@item.Body</p>
+                    <p class="mt-2 mb-0 whitespace-pre-wrap text-muted-foreground leading-relaxed text-[0.88rem]">@item.Body</p>
                 }
             </article>
         }

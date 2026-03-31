@@ -8,7 +8,6 @@ using StatusPageSharp.Infrastructure.Setup;
 using StatusPageSharp.Web.Extensions;
 
 var builder = WebApplication.CreateBuilder(args);
-
 builder.Services.AddStatusPageBootstrapOptions(builder.Configuration);
 builder.Services.AddStatusPageInfrastructureForWeb(builder.Configuration);
 builder.Services.AddDatabaseDeveloperPageExceptionFilter();

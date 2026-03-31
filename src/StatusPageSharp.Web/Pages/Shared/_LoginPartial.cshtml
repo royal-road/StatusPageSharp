@@ -5,13 +5,13 @@
 
 @if (SignInManager.IsSignedIn(User))
 {
-    <a asp-page="/Admin/Index">Admin</a>
-    <a asp-area="Identity" asp-page="/Account/Manage/Index">@UserManager.GetUserName(User)</a>
-    <form class="inline-form" asp-area="Identity" asp-page="/Account/Logout" asp-route-returnUrl="@Url.Page("/Index")">
-        <button type="submit" class="link-button">Logout</button>
+    <a class="nav-link-effect" asp-page="/Admin/Index">Admin</a>
+    <a class="nav-link-effect" asp-area="Identity" asp-page="/Account/Manage/Index">@UserManager.GetUserName(User)</a>
+    <form class="inline" asp-area="Identity" asp-page="/Account/Logout" asp-route-returnUrl="@Url.Page("/Index")">
+        <button type="submit" class="nav-link-effect bg-transparent border-0 text-inherit font-inherit cursor-pointer">Logout</button>
     </form>
 }
 else
 {
-    <a asp-area="Identity" asp-page="/Account/Login">Login</a>
+    <a class="nav-link-effect" asp-area="Identity" asp-page="/Account/Login">Login</a>
 }
