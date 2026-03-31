@@ -9,5 +9,6 @@
   <Folder Name="/tests/">
     <Project Path="tests/StatusPageSharp.Domain.Tests/StatusPageSharp.Domain.Tests.csproj" />
     <Project Path="tests/StatusPageSharp.Infrastructure.Tests/StatusPageSharp.Infrastructure.Tests.csproj" />
+    <Project Path="tests/StatusPageSharp.Web.Tests/StatusPageSharp.Web.Tests.csproj" />
   </Folder>
 </Solution>

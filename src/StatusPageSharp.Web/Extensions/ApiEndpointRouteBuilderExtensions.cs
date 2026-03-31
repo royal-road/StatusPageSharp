@@ -1,4 +1,5 @@
 using StatusPageSharp.Application.Abstractions;
+using StatusPageSharp.Web.Caching;
 using StatusPageSharp.Web.Rendering;
 
 namespace StatusPageSharp.Web.Extensions;
@@ -59,15 +60,19 @@ public static class ApiEndpointRouteBuilderExtensions
             .MapGet(
                 "/status-card.png",
                 async (
+                    HttpContext httpContext,
                     IPublicStatusService publicStatusService,
                     CancellationToken cancellationToken
                 ) =>
-                    TypedResults.File(
+                {
+                    StatusCardResponseCacheHeaders.Apply(httpContext.Response.Headers);
+                    return TypedResults.File(
                         SocialStatusCardRenderer.Render(
                             await publicStatusService.GetSiteSummaryAsync(cancellationToken)
                         ),
                         "image/png"
-                    )
+                    );
+                }
             )
             .CacheOutput("StatusCard");
 
