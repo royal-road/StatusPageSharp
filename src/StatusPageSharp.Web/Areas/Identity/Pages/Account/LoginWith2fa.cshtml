@@ -1,0 +1,65 @@
+@page
+@model LoginWith2faModel
+@{
+    ViewData["Title"] = "Two-factor verification";
+    ViewData["Description"] = "Verify your identity with an authenticator code to finish signing in.";
+}
+
+<section class="relative flex justify-between gap-8 rounded-2xl border border-border bg-gradient-to-br from-card to-secondary p-10 overflow-hidden isolate max-md:flex-col max-md:p-7">
+    <div class="absolute -top-[40%] -right-[15%] w-[55%] h-[180%] bg-[radial-gradient(ellipse,rgba(129,140,248,0.08),transparent_70%)] pointer-events-none"></div>
+    <div class="relative z-10">
+        <p class="font-mono text-xs font-medium tracking-[0.12em] uppercase text-primary">Account</p>
+        <h1 class="mt-1.5 mb-3 font-display text-[clamp(1.75rem,3.5vw,2.75rem)] font-bold tracking-tight leading-[1.3] text-white">Verify it&rsquo;s you</h1>
+        <p class="max-w-xl text-muted-foreground leading-relaxed text-[0.95rem]">
+            Enter the 6-digit code from your authenticator app to finish signing in.
+        </p>
+    </div>
+</section>
+
+<section class="grid gap-4 lg:grid-cols-[minmax(0,26rem)_minmax(0,1fr)] items-start">
+    <form id="two-factor-form" method="post" asp-route-returnUrl="@Model.ReturnUrl" asp-route-rememberMe="@Model.RememberMe" class="rounded-2xl border border-border bg-card p-6 shadow-sm grid gap-5">
+        <div asp-validation-summary="ModelOnly" class="text-destructive text-sm" role="alert"></div>
+        <div class="grid gap-1.5">
+            <label class="text-[0.78rem] font-semibold text-muted-foreground tracking-wide uppercase" asp-for="Input.AuthenticatorCode">Authenticator Code</label>
+            <input class="w-full px-3 py-2.5 rounded-md border border-border bg-background text-foreground text-[0.88rem] placeholder:text-muted-foreground/50 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all" asp-for="Input.AuthenticatorCode" autocomplete="one-time-code" inputmode="numeric" placeholder="123456" />
+            <span asp-validation-for="Input.AuthenticatorCode" class="text-destructive text-xs"></span>
+            <p class="m-0 text-xs text-muted-foreground">
+                Spaces and dashes are ignored.
+            </p>
+        </div>
+
+        <label class="inline-flex items-center gap-2 text-muted-foreground text-[0.88rem] cursor-pointer">
+            <input class="accent-primary w-4 h-4" asp-for="Input.RememberMachine" />
+            @Html.DisplayNameFor(m => m.Input.RememberMachine)
+        </label>
+
+        <button id="login-submit" type="submit" class="w-full inline-flex items-center justify-center rounded-md bg-primary text-primary-foreground px-4 py-2.5 text-[0.88rem] font-semibold hover:opacity-90 transition-all hover:-translate-y-px shadow-sm cursor-pointer">
+            Log in
+        </button>
+    </form>
+
+    <aside class="rounded-2xl border border-border bg-card p-6 shadow-sm grid gap-4">
+        <div class="rounded-xl border border-border bg-secondary/30 p-5">
+            <span class="block text-[0.72rem] font-semibold uppercase tracking-[0.12em] text-muted-foreground">Two-factor sign-in</span>
+            <h2 class="mt-2 text-[0.98rem] font-semibold text-foreground">Use your current authenticator code</h2>
+            <p class="mt-2 text-sm leading-relaxed text-muted-foreground">
+                Open Microsoft Authenticator, 1Password, Google Authenticator, or another TOTP app and enter the current code for this account.
+            </p>
+        </div>
+
+        <div class="rounded-xl border border-border bg-secondary/30 p-5">
+            <span class="block text-[0.72rem] font-semibold uppercase tracking-[0.12em] text-muted-foreground">Fallback</span>
+            <h2 class="mt-2 text-[0.98rem] font-semibold text-foreground">Use a recovery code instead</h2>
+            <p class="mt-2 text-sm leading-relaxed text-muted-foreground">
+                If you do not have access to your authenticator device, use one of the recovery codes you saved when 2FA was enabled.
+            </p>
+            <a class="mt-4 inline-flex items-center justify-center rounded-md border border-border bg-background px-4 py-2 text-[0.82rem] font-semibold text-foreground hover:bg-secondary/50 transition-colors" asp-page="./LoginWithRecoveryCode" asp-route-returnUrl="@Model.ReturnUrl">
+                Use recovery code
+            </a>
+        </div>
+    </aside>
+</section>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

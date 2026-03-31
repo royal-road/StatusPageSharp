@@ -1,0 +1,36 @@
+@page
+@model ResetAuthenticatorModel
+@{
+    ViewData["Title"] = "Reset authenticator";
+    ViewData["ActivePage"] = ManageNavPages.TwoFactorAuthentication;
+}
+
+<section class="rounded-2xl border border-border bg-card p-6 shadow-sm">
+    <div class="flex items-start justify-between gap-4 mb-6 max-md:flex-col max-md:items-start">
+        <div>
+            <h2 class="text-lg font-bold tracking-tight m-0">Reset authenticator setup</h2>
+            <p class="mt-2 mb-0 max-w-2xl text-sm text-muted-foreground">
+                This disables 2FA until you verify a new authenticator app with a fresh secret key.
+            </p>
+        </div>
+        <a class="inline-flex items-center justify-center rounded-md border border-border bg-background px-4 py-2 text-[0.82rem] font-semibold text-foreground hover:bg-secondary/50 transition-colors" asp-page="./TwoFactorAuthentication">
+            Cancel
+        </a>
+    </div>
+
+    <div class="rounded-xl border border-warn/20 bg-warn/8 p-5">
+        <span class="block text-[0.72rem] font-semibold uppercase tracking-[0.12em] text-warn">Heads up</span>
+        <p class="mt-3 mb-0 text-sm leading-relaxed text-muted-foreground">
+            Your current authenticator code will stop working immediately. After reset, you will be sent back to the setup screen to configure a new app.
+        </p>
+    </div>
+
+    <form method="post" class="flex flex-wrap gap-3 mt-6">
+        <button class="inline-flex items-center justify-center rounded-md bg-primary text-primary-foreground px-4 py-2 text-[0.82rem] font-semibold hover:opacity-90 transition-all hover:-translate-y-px shadow-sm cursor-pointer" type="submit">
+            Reset and reconfigure
+        </button>
+        <a class="inline-flex items-center justify-center rounded-md border border-border bg-background px-4 py-2 text-[0.82rem] font-semibold text-foreground hover:bg-secondary/50 transition-colors" asp-page="./TwoFactorAuthentication">
+            Keep current setup
+        </a>
+    </form>
+</section>

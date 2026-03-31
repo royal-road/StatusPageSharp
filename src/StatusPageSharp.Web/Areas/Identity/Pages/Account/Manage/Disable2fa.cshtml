@@ -1,0 +1,36 @@
+@page
+@model Disable2faModel
+@{
+    ViewData["Title"] = "Disable two-factor authentication";
+    ViewData["ActivePage"] = ManageNavPages.TwoFactorAuthentication;
+}
+
+<section class="rounded-2xl border border-border bg-card p-6 shadow-sm">
+    <div class="flex items-start justify-between gap-4 mb-6 max-md:flex-col max-md:items-start">
+        <div>
+            <h2 class="text-lg font-bold tracking-tight m-0">Disable two-factor authentication</h2>
+            <p class="mt-2 mb-0 max-w-2xl text-sm text-muted-foreground">
+                This removes the extra sign-in check from your account. Password-only sign-ins are less secure.
+            </p>
+        </div>
+        <a class="inline-flex items-center justify-center rounded-md border border-border bg-background px-4 py-2 text-[0.82rem] font-semibold text-foreground hover:bg-secondary/50 transition-colors" asp-page="./TwoFactorAuthentication">
+            Cancel
+        </a>
+    </div>
+
+    <div class="rounded-xl border border-destructive/20 bg-destructive/8 p-5">
+        <span class="block text-[0.72rem] font-semibold uppercase tracking-[0.12em] text-destructive">Warning</span>
+        <p class="mt-3 mb-0 text-sm leading-relaxed text-muted-foreground">
+            Disable 2FA only if you are replacing your authenticator setup or you have lost access to it and need to recover the account.
+        </p>
+    </div>
+
+    <form method="post" class="flex flex-wrap gap-3 mt-6">
+        <button class="inline-flex items-center justify-center rounded-md bg-destructive text-primary-foreground px-4 py-2 text-[0.82rem] font-semibold hover:opacity-90 transition-all hover:-translate-y-px shadow-sm cursor-pointer" type="submit">
+            Disable 2FA
+        </button>
+        <a class="inline-flex items-center justify-center rounded-md border border-border bg-background px-4 py-2 text-[0.82rem] font-semibold text-foreground hover:bg-secondary/50 transition-colors" asp-page="./TwoFactorAuthentication">
+            Keep enabled
+        </a>
+    </form>
+</section>
