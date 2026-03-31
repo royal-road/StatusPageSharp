@@ -1,0 +1,60 @@
+services:
+  postgres:
+    image: postgres:18-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-statuspage}
+      POSTGRES_USER: ${POSTGRES_USER:-statuspage}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-statuspage}
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 5s
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    restart: unless-stopped
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+
+  web:
+    build:
+      context: .
+      dockerfile: src/StatusPageSharp.Web/Dockerfile
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ASPNETCORE_HTTP_PORTS: "8080"
+      BootstrapAdmin__DisplayName: ${STATUSPAGE_BOOTSTRAP_ADMIN_DISPLAY_NAME:-Admin}
+      BootstrapAdmin__Email: ${STATUSPAGE_BOOTSTRAP_ADMIN_EMAIL:-admin@localhost}
+      BootstrapAdmin__Enabled: ${STATUSPAGE_BOOTSTRAP_ADMIN_ENABLED:-true}
+      BootstrapAdmin__Password: ${STATUSPAGE_BOOTSTRAP_ADMIN_PASSWORD:-ChangeThis123!}
+      ConnectionStrings__DefaultConnection: Host=postgres;Port=5432;Database=${POSTGRES_DB:-statuspage};Username=${POSTGRES_USER:-statuspage};Password=${POSTGRES_PASSWORD:-statuspage}
+    ports:
+      - "${STATUSPAGE_WEB_PORT:-5008}:8080"
+    restart: unless-stopped
+    volumes:
+      - web-data-protection:/root/.aspnet/DataProtection-Keys
+
+  worker:
+    build:
+      context: .
+      dockerfile: src/StatusPageSharp.Worker/Dockerfile
+    depends_on:
+      postgres:
+        condition: service_healthy
+      web:
+        condition: service_started
+    environment:
+      ConnectionStrings__DefaultConnection: Host=postgres;Port=5432;Database=${POSTGRES_DB:-statuspage};Username=${POSTGRES_USER:-statuspage};Password=${POSTGRES_PASSWORD:-statuspage}
+    restart: unless-stopped
+
+volumes:
+  postgres-data:
+  web-data-protection:

@@ -78,7 +78,10 @@ public static class InfrastructureServiceCollectionExtensions
 
         optionsBuilder.UseNpgsql(
             connectionString,
-            options => options.MigrationsAssembly(typeof(ApplicationDbContext).Assembly.FullName)
+            options =>
+                options
+                    .MigrationsAssembly(typeof(ApplicationDbContext).Assembly.FullName)
+                    .EnableRetryOnFailure()
         );
     }
 }

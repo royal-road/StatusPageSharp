@@ -5,6 +5,7 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <UserSecretsId>aspnet-StatusPageSharp.Web-8f7775ea-a9ad-4322-882a-db3043089c09</UserSecretsId>
+    <EnableTailwindBuild Condition="'$(EnableTailwindBuild)' == ''">true</EnableTailwindBuild>
   </PropertyGroup>
 
   <ItemGroup>
@@ -25,12 +26,13 @@
   <Target
     Name="NpmRestore"
     BeforeTargets="BuildTailwind"
-    Inputs="package.json"
+    Condition="'$(EnableTailwindBuild)' == 'true'"
+    Inputs="package.json;package-lock.json"
     Outputs="node_modules/.package-lock.json"
   >
     <Exec Command="npm ci --prefer-offline" WorkingDirectory="$(MSBuildProjectDirectory)" />
   </Target>
-  <Target Name="BuildTailwind" BeforeTargets="Build">
+  <Target Name="BuildTailwind" BeforeTargets="Build" Condition="'$(EnableTailwindBuild)' == 'true'">
     <Exec
       Command="npx @tailwindcss/cli -i ./Styles/app.css -o ./wwwroot/css/site.css --minify"
       WorkingDirectory="$(MSBuildProjectDirectory)"
