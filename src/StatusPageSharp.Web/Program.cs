@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Identity;
 using StatusPageSharp.Domain.Constants;
 using StatusPageSharp.Infrastructure.Data;
@@ -8,6 +9,7 @@ using StatusPageSharp.Infrastructure.Setup;
 using StatusPageSharp.Web.Extensions;
 
 var builder = WebApplication.CreateBuilder(args);
+builder.Services.AddStatusPageForwardedHeaders(builder.Configuration);
 builder.Services.AddStatusPageBootstrapOptions(builder.Configuration);
 builder.Services.AddStatusPageInfrastructureForWeb(builder.Configuration);
 builder.Services.AddDatabaseDeveloperPageExceptionFilter();
@@ -53,6 +55,8 @@ var runningInContainer = string.Equals(
     "true",
     StringComparison.OrdinalIgnoreCase
 );
+
+app.UseForwardedHeaders();
 
 if (app.Environment.IsDevelopment())
 {
