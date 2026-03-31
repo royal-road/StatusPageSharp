@@ -1,3 +1,6 @@
+using System.Globalization;
+using System.Security.Cryptography;
+using System.Text;
 using SixLabors.Fonts;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Drawing.Processing;
@@ -29,6 +32,36 @@ public static class SocialStatusCardRenderer
     private static readonly Color Foreground = Color.FromRgb(250, 250, 252);
     private static readonly Color MutedForeground = Color.FromRgb(168, 174, 190);
     private static readonly Color Accent = Color.FromRgba(129, 140, 248, 255);
+
+    public static string BuildVersionToken(PublicSiteSummaryModel siteSummary)
+    {
+        var monitoredServices = siteSummary.Groups.Sum(group => group.Services.Count);
+        var segments = new List<string>
+        {
+            siteSummary.SiteTitle,
+            siteSummary.SiteStatus.ToString(),
+            monitoredServices.ToString(CultureInfo.InvariantCulture),
+            siteSummary.ActiveIncidents.Count.ToString(CultureInfo.InvariantCulture),
+            siteSummary.ActiveMaintenance.Count.ToString(CultureInfo.InvariantCulture),
+        };
+
+        foreach (var group in siteSummary.Groups.Take(MaxRenderedGroups))
+        {
+            segments.Add(group.Name);
+            segments.Add(group.Status.ToString());
+            segments.Add(group.Services.Count.ToString(CultureInfo.InvariantCulture));
+
+            foreach (var service in group.Services.Take(12))
+            {
+                segments.Add(service.Slug);
+                segments.Add(service.Status.ToString());
+            }
+        }
+
+        var payload = string.Join('\n', segments);
+        var hash = SHA256.HashData(Encoding.UTF8.GetBytes(payload));
+        return Convert.ToHexString(hash[..8]).ToLowerInvariant();
+    }
 
     public static byte[] Render(PublicSiteSummaryModel siteSummary)
     {

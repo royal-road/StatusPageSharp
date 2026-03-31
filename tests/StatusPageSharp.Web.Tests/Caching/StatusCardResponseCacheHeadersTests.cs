@@ -7,14 +7,20 @@ namespace StatusPageSharp.Web.Tests.Caching;
 public class StatusCardResponseCacheHeadersTests
 {
     [Fact]
-    public void Apply_SetsNoStoreHeaders_ForBrowsersAndCdns()
+    public void Apply_SetsThirtySecondCacheHeaders_ForBrowsersAndCdns()
     {
         var headers = new HeaderDictionary();
 
         StatusCardResponseCacheHeaders.Apply(headers);
 
-        Assert.Equal("no-store", headers[HeaderNames.CacheControl].ToString());
-        Assert.Equal("no-store", headers["CDN-Cache-Control"].ToString());
-        Assert.Equal("no-store", headers["Cloudflare-CDN-Cache-Control"].ToString());
+        Assert.Equal(
+            "public, max-age=30, s-maxage=30",
+            headers[HeaderNames.CacheControl].ToString()
+        );
+        Assert.Equal("public, max-age=30, s-maxage=30", headers["CDN-Cache-Control"].ToString());
+        Assert.Equal(
+            "public, max-age=30, s-maxage=30",
+            headers["Cloudflare-CDN-Cache-Control"].ToString()
+        );
     }
 }

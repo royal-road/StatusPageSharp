@@ -7,12 +7,12 @@ public static class StatusCardResponseCacheHeaders
 {
     private const string CdnCacheControlHeaderName = "CDN-Cache-Control";
     private const string CloudflareCdnCacheControlHeaderName = "Cloudflare-CDN-Cache-Control";
-    private const string NoStoreDirective = "no-store";
+    private const string CacheControlValue = "public, max-age=30, s-maxage=30";
 
     public static void Apply(IHeaderDictionary headers)
     {
-        headers[HeaderNames.CacheControl] = NoStoreDirective;
-        headers[CdnCacheControlHeaderName] = NoStoreDirective;
-        headers[CloudflareCdnCacheControlHeaderName] = NoStoreDirective;
+        headers[HeaderNames.CacheControl] = CacheControlValue;
+        headers[CdnCacheControlHeaderName] = CacheControlValue;
+        headers[CloudflareCdnCacheControlHeaderName] = CacheControlValue;
     }
 }
