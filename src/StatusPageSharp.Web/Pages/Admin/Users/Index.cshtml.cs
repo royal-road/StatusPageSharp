@@ -1,36 +1,40 @@
 using Microsoft.AspNetCore.Mvc;
 using StatusPageSharp.Application.Abstractions;
+using StatusPageSharp.Application.Exceptions;
 using StatusPageSharp.Application.Models.Admin;
 
 namespace StatusPageSharp.Web.Pages.Admin.Users;
 
 public class IndexModel(IUserManagementService userManagementService) : AdminPageModel
 {
-    [BindProperty]
     public UserCreateModel NewUser { get; set; } = new();
 
-    [BindProperty]
     public UserPasswordResetModel PasswordReset { get; set; } = new();
 
     public IReadOnlyList<UserAdminModel> Users { get; private set; } = [];
 
-    public async Task OnGetAsync()
-    {
-        Users = await userManagementService.GetUsersAsync(HttpContext.RequestAborted);
-        ViewData["Title"] = "Users";
-    }
+    public Task OnGetAsync() => LoadAsync();
 
-    public async Task<IActionResult> OnPostCreateAsync()
+    public async Task<IActionResult> OnPostCreateAsync(UserCreateModel newUser)
     {
-        ModelState.Remove($"{nameof(PasswordReset)}.{nameof(PasswordReset.UserId)}");
-        ModelState.Remove($"{nameof(PasswordReset)}.{nameof(PasswordReset.NewPassword)}");
+        NewUser = newUser;
         if (!ModelState.IsValid)
         {
-            await OnGetAsync();
+            await LoadAsync();
             return Page();
         }
 
-        await userManagementService.CreateUserAsync(NewUser, HttpContext.RequestAborted);
+        try
+        {
+            await userManagementService.CreateUserAsync(newUser, HttpContext.RequestAborted);
+        }
+        catch (UserManagementException exception)
+        {
+            AddErrors(exception);
+            await LoadAsync();
+            return Page();
+        }
+
         return RedirectToPage();
     }
 
@@ -40,18 +44,45 @@ public class IndexModel(IUserManagementService userManagementService) : AdminPag
         return RedirectToPage();
     }
 
-    public async Task<IActionResult> OnPostResetPasswordAsync()
+    public async Task<IActionResult> OnPostResetPasswordAsync(UserPasswordResetModel passwordReset)
     {
-        ModelState.Remove($"{nameof(NewUser)}.{nameof(NewUser.Email)}");
-        ModelState.Remove($"{nameof(NewUser)}.{nameof(NewUser.DisplayName)}");
-        ModelState.Remove($"{nameof(NewUser)}.{nameof(NewUser.Password)}");
+        PasswordReset = passwordReset;
         if (!ModelState.IsValid)
         {
-            await OnGetAsync();
+            await LoadAsync();
             return Page();
         }
 
-        await userManagementService.ResetPasswordAsync(PasswordReset, HttpContext.RequestAborted);
+        try
+        {
+            await userManagementService.ResetPasswordAsync(
+                passwordReset,
+                HttpContext.RequestAborted
+            );
+        }
+        catch (UserManagementException exception)
+        {
+            AddErrors(exception);
+            await LoadAsync();
+            return Page();
+        }
+
         return RedirectToPage();
+    }
+
+    private void AddErrors(UserManagementException exception)
+    {
+        foreach (var error in exception.Errors)
+        {
+            ModelState.AddModelError(string.Empty, error);
+        }
+    }
+
+    private Task LoadAsync() => LoadAsync(HttpContext.RequestAborted);
+
+    private async Task LoadAsync(CancellationToken cancellationToken)
+    {
+        Users = await userManagementService.GetUsersAsync(cancellationToken);
+        ViewData["Title"] = "Users";
     }
 }

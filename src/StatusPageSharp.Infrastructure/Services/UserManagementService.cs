@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using StatusPageSharp.Application.Abstractions;
+using StatusPageSharp.Application.Exceptions;
 using StatusPageSharp.Application.Models.Admin;
 using StatusPageSharp.Domain.Constants;
 using StatusPageSharp.Infrastructure.Identity;
@@ -34,7 +35,10 @@ public sealed class UserManagementService(
     {
         if (!await roleManager.RoleExistsAsync(RoleNames.Administrator))
         {
-            await roleManager.CreateAsync(new IdentityRole(RoleNames.Administrator));
+            var createRoleResult = await roleManager.CreateAsync(
+                new IdentityRole(RoleNames.Administrator)
+            );
+            EnsureSucceeded(createRoleResult);
         }
 
         var user = new ApplicationUser
@@ -50,20 +54,10 @@ public sealed class UserManagementService(
         };
 
         var result = await userManager.CreateAsync(user, model.Password);
-        if (!result.Succeeded)
-        {
-            throw new InvalidOperationException(
-                string.Join("; ", result.Errors.Select(error => error.Description))
-            );
-        }
+        EnsureSucceeded(result);
 
         var addRoleResult = await userManager.AddToRoleAsync(user, RoleNames.Administrator);
-        if (!addRoleResult.Succeeded)
-        {
-            throw new InvalidOperationException(
-                string.Join("; ", addRoleResult.Errors.Select(error => error.Description))
-            );
-        }
+        EnsureSucceeded(addRoleResult);
     }
 
     public async Task SetEnabledAsync(
@@ -78,12 +72,7 @@ public sealed class UserManagementService(
         );
         user.IsEnabled = isEnabled;
         var result = await userManager.UpdateAsync(user);
-        if (!result.Succeeded)
-        {
-            throw new InvalidOperationException(
-                string.Join("; ", result.Errors.Select(error => error.Description))
-            );
-        }
+        EnsureSucceeded(result);
 
         await userManager.UpdateSecurityStampAsync(user);
     }
@@ -99,11 +88,18 @@ public sealed class UserManagementService(
         );
         var token = await userManager.GeneratePasswordResetTokenAsync(user);
         var result = await userManager.ResetPasswordAsync(user, token, model.NewPassword);
-        if (!result.Succeeded)
+        EnsureSucceeded(result);
+    }
+
+    private static void EnsureSucceeded(IdentityResult result)
+    {
+        if (result.Succeeded)
         {
-            throw new InvalidOperationException(
-                string.Join("; ", result.Errors.Select(error => error.Description))
-            );
+            return;
         }
+
+        throw new UserManagementException(
+            result.Errors.Select(error => error.Description).ToArray()
+        );
     }
 }
