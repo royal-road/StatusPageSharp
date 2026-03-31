@@ -1,0 +1,97 @@
+@page
+@model StatusPageSharp.Web.Pages.IndexModel
+@{
+    ViewData["Title"] = "System Status";
+}
+
+<section class="hero-card">
+    <div>
+        <p class="eyebrow">Current Status</p>
+        <h1>All systems are tracked from a single status surface.</h1>
+        <p class="lead">Live component health, active incidents, scheduled maintenance, latency history, and monthly SLA snapshots stay in one place.</p>
+    </div>
+    <div class="status-chip @StatusDisplayHelper.ToCssClass(Model.SiteSummary.SiteStatus)">
+        @StatusDisplayHelper.ToLabel(Model.SiteSummary.SiteStatus)
+    </div>
+</section>
+
+@if (Model.SiteSummary.ActiveIncidents.Count > 0)
+{
+    <section class="section-card">
+        <div class="section-header">
+            <h2>Active Incidents</h2>
+            <a class="section-link" asp-page="/Maintenance/Index">View Maintenance</a>
+        </div>
+        <div class="incident-grid">
+            @foreach (var incident in Model.SiteSummary.ActiveIncidents)
+            {
+                <a class="incident-card" asp-page="/Incidents/Details" asp-route-id="@incident.Id">
+                    <strong>@incident.Title</strong>
+                    <p>@incident.Summary</p>
+                    <span>Started @incident.StartedUtc.ToLocalTime().ToString("g")</span>
+                </a>
+            }
+        </div>
+    </section>
+}
+
+@if (Model.SiteSummary.ActiveMaintenance.Count > 0)
+{
+    <section class="section-card">
+        <div class="section-header">
+            <h2>Active Maintenance</h2>
+            <a class="section-link" asp-page="/Maintenance/Index">All Maintenance</a>
+        </div>
+        <div class="maintenance-grid">
+            @foreach (var maintenance in Model.SiteSummary.ActiveMaintenance)
+            {
+                <article class="maintenance-card">
+                    <strong>@maintenance.Title</strong>
+                    <p>@maintenance.Summary</p>
+                    <span>@maintenance.StartsUtc.ToLocalTime().ToString("g") - @maintenance.EndsUtc.ToLocalTime().ToString("g")</span>
+                </article>
+            }
+        </div>
+    </section>
+}
+
+<section class="section-card">
+    <div class="section-header">
+        <h2>Components</h2>
+        <span class="muted">@Model.SiteSummary.Groups.Count group(s)</span>
+    </div>
+    @foreach (var group in Model.SiteSummary.Groups)
+    {
+        <div class="group-card">
+            <div class="group-header">
+                <div>
+                    <h3>@group.Name</h3>
+                    @if (!string.IsNullOrWhiteSpace(group.Description))
+                    {
+                        <p>@group.Description</p>
+                    }
+                </div>
+                <span class="status-pill @StatusDisplayHelper.ToCssClass(group.Status)">@StatusDisplayHelper.ToLabel(group.Status)</span>
+            </div>
+            <div class="service-list">
+                @foreach (var service in group.Services)
+                {
+                    <a class="service-row" asp-page="/Services/Details" asp-route-slug="@service.Slug">
+                        <div class="service-name">
+                            <strong>@service.Name</strong>
+                            @if (!string.IsNullOrWhiteSpace(service.Description))
+                            {
+                                <span>@service.Description</span>
+                            }
+                        </div>
+                        <div class="service-metrics">
+                            <span class="status-pill @StatusDisplayHelper.ToCssClass(service.Status)">@StatusDisplayHelper.ToLabel(service.Status)</span>
+                            <span>@(service.LastLatencyMilliseconds?.ToString() ?? "--") ms</span>
+                            <span>@(service.LastThirtyDayUptimePercentage?.ToString("0.00") ?? "--")%</span>
+                        </div>
+                    </a>
+                }
+            </div>
+        </div>
+    }
+</section>

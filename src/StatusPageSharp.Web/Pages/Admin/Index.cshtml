@@ -1,0 +1,47 @@
+@page
+@model StatusPageSharp.Web.Pages.Admin.IndexModel
+@{
+    ViewData["Title"] = "Admin";
+}
+
+<section class="hero-card compact">
+    <div>
+        <p class="eyebrow">Admin</p>
+        <h1>Operational control center</h1>
+        <p class="lead">Manage services, incidents, maintenance windows, site settings, and admin users from the same application.</p>
+    </div>
+    <div class="status-stack">
+        <span class="status-pill large @StatusDisplayHelper.ToCssClass(Model.Dashboard.SiteStatus)">@StatusDisplayHelper.ToLabel(Model.Dashboard.SiteStatus)</span>
+        <span class="metric-copy">@Model.Dashboard.OpenIncidentCount active incident(s)</span>
+    </div>
+</section>
+
+<section class="chart-grid">
+    <article class="section-card">
+        <div class="section-header"><h2>Services</h2></div>
+        <p>@Model.Dashboard.ServiceCount total</p>
+        <a class="button-secondary" asp-page="/Admin/Services/Index">Manage Services</a>
+    </article>
+    <article class="section-card">
+        <div class="section-header"><h2>Groups</h2></div>
+        <p>@Model.Dashboard.GroupCount total</p>
+        <a class="button-secondary" asp-page="/Admin/ServiceGroups/Index">Manage Groups</a>
+    </article>
+    <article class="section-card">
+        <div class="section-header"><h2>Maintenance</h2></div>
+        <p>@Model.Dashboard.ActiveMaintenanceCount active</p>
+        <a class="button-secondary" asp-page="/Admin/Maintenance/Index">Manage Maintenance</a>
+    </article>
+    <article class="section-card">
+        <div class="section-header"><h2>Users</h2></div>
+        <p>Create and disable admins</p>
+        <a class="button-secondary" asp-page="/Admin/Users/Index">Manage Users</a>
+    </article>
+</section>
+
+<section class="section-card">
+    <div class="button-row">
+        <a class="button" asp-page="/Admin/Incidents/Index">Incidents</a>
+        <a class="button-secondary" asp-page="/Admin/Settings/Index">Site Settings</a>
+    </div>
+</section>

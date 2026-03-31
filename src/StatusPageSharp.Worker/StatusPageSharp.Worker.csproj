@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk.Worker">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <LangVersion>14.0</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UserSecretsId>dotnet-StatusPageSharp.Worker-2f289067-309b-423f-afd8-a48c2cfdce86</UserSecretsId>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Hosting" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\StatusPageSharp.Application\StatusPageSharp.Application.csproj" />
+    <ProjectReference Include="..\StatusPageSharp.Infrastructure\StatusPageSharp.Infrastructure.csproj" />
+  </ItemGroup>
+</Project>

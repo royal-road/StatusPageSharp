@@ -1,0 +1,56 @@
+@page
+@model StatusPageSharp.Web.Pages.Admin.ServiceGroups.IndexModel
+@{
+    ViewData["Title"] = "Service Groups";
+}
+
+<section class="section-card">
+    <div class="section-header">
+        <h1>Service Groups</h1>
+    </div>
+    <form method="post" class="form-grid two-up">
+        <div class="field">
+            <label asp-for="Input.Name">Name</label>
+            <input asp-for="Input.Name" />
+        </div>
+        <div class="field">
+            <label asp-for="Input.Slug">Slug</label>
+            <input asp-for="Input.Slug" />
+        </div>
+        <div class="field">
+            <label asp-for="Input.Description">Description</label>
+            <input asp-for="Input.Description" />
+        </div>
+        <div class="field">
+            <label asp-for="Input.DisplayOrder">Display Order</label>
+            <input asp-for="Input.DisplayOrder" type="number" />
+        </div>
+        <div class="button-row">
+            <button class="button" type="submit">Create Group</button>
+        </div>
+    </form>
+</section>
+
+<section class="section-card">
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Slug</th>
+                <th>Services</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+        @foreach (var group in Model.ServiceGroups)
+        {
+            <tr>
+                <td>@group.Name</td>
+                <td>@group.Slug</td>
+                <td>@group.ServiceCount</td>
+                <td><a class="button-secondary" asp-page="/Admin/ServiceGroups/Edit" asp-route-id="@group.Id">Edit</a></td>
+            </tr>
+        }
+        </tbody>
+    </table>
+</section>

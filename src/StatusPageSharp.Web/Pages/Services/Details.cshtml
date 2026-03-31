@@ -1,0 +1,53 @@
+@page "/services/{slug}"
+@model StatusPageSharp.Web.Pages.Services.DetailsModel
+@{
+    ViewData["Title"] = Model.Service.Name;
+}
+
+<section class="hero-card compact">
+    <div>
+        <p class="eyebrow">@Model.Service.GroupName</p>
+        <h1>@Model.Service.Name</h1>
+        @if (!string.IsNullOrWhiteSpace(Model.Service.Description))
+        {
+            <p class="lead">@Model.Service.Description</p>
+        }
+    </div>
+    <div class="status-stack">
+        <span class="status-pill large @StatusDisplayHelper.ToCssClass(Model.Service.Status)">@StatusDisplayHelper.ToLabel(Model.Service.Status)</span>
+        <span class="metric-copy">Latest latency: @(Model.Service.LastLatencyMilliseconds?.ToString() ?? "--") ms</span>
+    </div>
+</section>
+
+<section class="chart-grid">
+    <article class="section-card">
+        <div class="section-header">
+            <h2>Availability</h2>
+            <span class="muted">Last 48 hours</span>
+        </div>
+        <svg class="history-chart" id="uptime-chart"></svg>
+    </article>
+    <article class="section-card">
+        <div class="section-header">
+            <h2>Latency</h2>
+            <span class="muted">Average response time</span>
+        </div>
+        <svg class="history-chart" id="latency-chart"></svg>
+    </article>
+</section>
+
+<section class="section-card">
+    <div class="section-header">
+        <h2>Monthly SLA</h2>
+        <span class="muted">Calendar month view</span>
+    </div>
+    <svg class="history-chart" id="sla-chart"></svg>
+</section>
+
+@section Scripts {
+    <script>
+        window.renderStatusChart("uptime-chart", @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Service.UptimePoints)));
+        window.renderStatusChart("latency-chart", @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Service.LatencyPoints)));
+        window.renderStatusChart("sla-chart", @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Service.SlaPoints.Select(item => new { label = item.MonthLabel, value = item.UptimePercentage }))));
+    </script>
+}

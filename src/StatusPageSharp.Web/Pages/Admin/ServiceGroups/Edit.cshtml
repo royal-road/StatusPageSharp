@@ -1,0 +1,33 @@
+@page "{id:guid}"
+@model StatusPageSharp.Web.Pages.Admin.ServiceGroups.EditModel
+@{
+    ViewData["Title"] = "Edit Service Group";
+}
+
+<section class="section-card">
+    <div class="section-header">
+        <h1>Edit Service Group</h1>
+    </div>
+    <form method="post" class="form-grid two-up">
+        <div class="field">
+            <label asp-for="Input.Name">Name</label>
+            <input asp-for="Input.Name" />
+        </div>
+        <div class="field">
+            <label asp-for="Input.Slug">Slug</label>
+            <input asp-for="Input.Slug" />
+        </div>
+        <div class="field">
+            <label asp-for="Input.Description">Description</label>
+            <input asp-for="Input.Description" />
+        </div>
+        <div class="field">
+            <label asp-for="Input.DisplayOrder">Display Order</label>
+            <input asp-for="Input.DisplayOrder" type="number" />
+        </div>
+        <div class="button-row">
+            <button class="button" type="submit">Save</button>
+            <a class="button-secondary" asp-page="/Admin/ServiceGroups/Index">Back</a>
+        </div>
+    </form>
+</section>

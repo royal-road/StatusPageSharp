@@ -1,0 +1,50 @@
+@using StatusPageSharp.Application.Abstractions
+@inject ISiteSettingsService SiteSettingsService
+@{
+    var siteSettings = await SiteSettingsService.GetSettingsAsync(Context.RequestAborted);
+}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#08090d" />
+    <title>@ViewData["Title"] - @siteSettings.SiteTitle</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700;12..96,800&family=JetBrains+Mono:wght@400;500&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+</head>
+<body>
+    <div class="page-shell">
+        <header class="site-header">
+            <div class="shell-bar">
+                <a class="brand" asp-page="/Index">
+                    @if (!string.IsNullOrWhiteSpace(siteSettings.LogoUrl))
+                    {
+                        <img class="brand-logo" src="@siteSettings.LogoUrl" alt="@siteSettings.SiteTitle logo" />
+                    }
+                    <span>@siteSettings.SiteTitle</span>
+                </a>
+                <nav class="primary-nav">
+                    <a asp-page="/Index">Status</a>
+                    <a asp-page="/Maintenance/Index">Maintenance</a>
+                    <partial name="_LoginPartial" />
+                </nav>
+            </div>
+        </header>
+
+        <main class="content-shell">
+            @RenderBody()
+        </main>
+
+        <footer class="site-footer">
+            <span>&copy; @DateTime.UtcNow.Year @siteSettings.SiteTitle</span>
+            <span>Powered by StatusPageSharp</span>
+        </footer>
+    </div>
+
+    <script src="~/js/site.js" asp-append-version="true"></script>
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

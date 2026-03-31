@@ -1,0 +1,99 @@
+@page "{id:guid}"
+@model StatusPageSharp.Web.Pages.Admin.Incidents.EditModel
+@{
+    ViewData["Title"] = "Edit Incident";
+}
+
+<section class="section-card">
+    <div class="section-header">
+        <h1>@Model.Incident.Title</h1>
+        <span class="status-pill @(Model.Incident.Status == StatusPageSharp.Domain.Enums.IncidentStatus.Open ? "status-bad" : "status-ok")">@Model.Incident.Status</span>
+    </div>
+    <p>@Model.Incident.Summary</p>
+    <p class="muted">Started @Model.Incident.StartedUtc.ToLocalTime().ToString("g")</p>
+</section>
+
+<section class="chart-grid">
+    <article class="section-card">
+        <div class="section-header"><h2>Affected Services</h2></div>
+        <div class="service-list">
+            @foreach (var service in Model.Incident.AffectedServices)
+            {
+                <div class="service-row static">
+                    <div class="service-name">
+                        <strong>@service.ServiceName</strong>
+                        <span>@service.ImpactLevel</span>
+                    </div>
+                    <div class="service-metrics">
+                        <span>@(service.IsResolved ? "Resolved" : "Open")</span>
+                    </div>
+                </div>
+            }
+        </div>
+        <form method="post" asp-page-handler="AddService" class="form-grid">
+            <div class="field">
+                <label asp-for="NewServiceId">Add Service</label>
+                <select asp-for="NewServiceId">
+                    @foreach (var service in Model.AvailableServices)
+                    {
+                        <option value="@service.Id">@service.Name</option>
+                    }
+                </select>
+            </div>
+            <div class="field">
+                <label asp-for="NewServiceImpactLevel">Impact</label>
+                <select asp-for="NewServiceImpactLevel" asp-items="Html.GetEnumSelectList<StatusPageSharp.Domain.Enums.IncidentImpactLevel>()"></select>
+            </div>
+            <div class="button-row">
+                <button class="button-secondary" type="submit">Attach Service</button>
+            </div>
+        </form>
+    </article>
+
+    <article class="section-card">
+        <div class="section-header"><h2>Add Event</h2></div>
+        <form method="post" asp-page-handler="AddEvent" class="form-grid">
+            <div class="field">
+                <label asp-for="NewEvent.Message">Message</label>
+                <input asp-for="NewEvent.Message" />
+            </div>
+            <div class="field">
+                <label asp-for="NewEvent.Body">Details</label>
+                <textarea asp-for="NewEvent.Body"></textarea>
+            </div>
+            <div class="button-row">
+                <button class="button" type="submit">Add Event</button>
+            </div>
+        </form>
+    </article>
+</section>
+
+<section class="section-card">
+    <div class="section-header"><h2>Resolve</h2></div>
+    <form method="post" asp-page-handler="Resolve" class="form-grid">
+        <div class="field">
+            <label asp-for="Postmortem">Postmortem</label>
+            <textarea asp-for="Postmortem"></textarea>
+        </div>
+        <div class="button-row">
+            <button class="button-danger" type="submit">Resolve Incident</button>
+        </div>
+    </form>
+</section>
+
+<section class="section-card">
+    <div class="section-header"><h2>Timeline</h2></div>
+    <div class="timeline">
+        @foreach (var item in Model.Incident.Events)
+        {
+            <article class="timeline-item">
+                <strong>@item.Message</strong>
+                <span>@item.CreatedUtc.ToLocalTime().ToString("g")</span>
+                @if (!string.IsNullOrWhiteSpace(item.Body))
+                {
+                    <p>@item.Body</p>
+                }
+            </article>
+        }
+    </div>
+</section>

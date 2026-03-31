@@ -1,0 +1,31 @@
+@page "/maintenance"
+@model StatusPageSharp.Web.Pages.Maintenance.IndexModel
+@{
+    ViewData["Title"] = "Maintenance";
+}
+
+<section class="hero-card compact">
+    <div>
+        <p class="eyebrow">Maintenance</p>
+        <h1>Scheduled maintenance windows</h1>
+        <p class="lead">Maintenance windows do not count against uptime and they suppress automatic incident creation for the selected components.</p>
+    </div>
+</section>
+
+<section class="section-card">
+    <div class="section-header">
+        <h2>Windows</h2>
+        <span class="muted">@Model.MaintenanceItems.Count item(s)</span>
+    </div>
+    <div class="maintenance-grid">
+        @foreach (var item in Model.MaintenanceItems)
+        {
+            <article class="maintenance-card">
+                <strong>@item.Title</strong>
+                <p>@item.Summary</p>
+                <span>@item.StartsUtc.ToLocalTime().ToString("g") - @item.EndsUtc.ToLocalTime().ToString("g")</span>
+                <small>@string.Join(", ", item.ServiceNames)</small>
+            </article>
+        }
+    </div>
+</section>

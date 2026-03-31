@@ -1,0 +1,74 @@
+@page
+@model StatusPageSharp.Web.Pages.Admin.Incidents.IndexModel
+@{
+    ViewData["Title"] = "Incidents";
+}
+
+<section class="section-card">
+    <div class="section-header">
+        <h1>@(Model.ActiveIncident is null ? "Create Manual Incident" : "Update Active Incident")</h1>
+    </div>
+    @if (Model.ActiveIncident is not null)
+    {
+        <p class="muted">
+            A shared active incident is already open. This form will append a new event and attach the selected service to
+            <a asp-page="/Admin/Incidents/Edit" asp-route-id="@Model.ActiveIncident.Id">@Model.ActiveIncident.Title</a>.
+        </p>
+    }
+    <form method="post" class="form-grid">
+        <div class="form-grid two-up">
+            <div class="field">
+                <label asp-for="Input.Title">Title</label>
+                <input asp-for="Input.Title" />
+            </div>
+            <div class="field">
+                <label asp-for="Input.Summary">Summary</label>
+                <input asp-for="Input.Summary" />
+            </div>
+            <div class="field">
+                <label>First Affected Service</label>
+                <select asp-for="SelectedServiceId">
+                    @foreach (var service in Model.Services)
+                    {
+                        <option value="@service.Id">@service.Name</option>
+                    }
+                </select>
+            </div>
+            <div class="field">
+                <label>Impact Level</label>
+                <select asp-for="SelectedImpactLevel" asp-items="Html.GetEnumSelectList<StatusPageSharp.Domain.Enums.IncidentImpactLevel>()"></select>
+            </div>
+            <div class="field">
+                <label asp-for="Input.InitialEventBody">Initial Event Details</label>
+                <textarea asp-for="Input.InitialEventBody"></textarea>
+            </div>
+        </div>
+        <div class="button-row">
+            <button class="button" type="submit">@(Model.ActiveIncident is null ? "Create Incident" : "Add To Active Incident")</button>
+        </div>
+    </form>
+</section>
+
+<section class="section-card">
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Title</th>
+                <th>Status</th>
+                <th>Started</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+        @foreach (var incident in Model.Incidents)
+        {
+            <tr>
+                <td>@incident.Title</td>
+                <td>@incident.Status</td>
+                <td>@incident.StartedUtc.ToLocalTime().ToString("g")</td>
+                <td><a class="button-secondary" asp-page="/Admin/Incidents/Edit" asp-route-id="@incident.Id">Open</a></td>
+            </tr>
+        }
+        </tbody>
+    </table>
+</section>

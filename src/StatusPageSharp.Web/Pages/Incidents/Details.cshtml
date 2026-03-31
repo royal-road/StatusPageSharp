@@ -1,0 +1,67 @@
+@page "/incidents/{id:guid}"
+@model StatusPageSharp.Web.Pages.Incidents.DetailsModel
+@{
+    ViewData["Title"] = Model.Incident.Title;
+}
+
+<section class="hero-card compact">
+    <div>
+        <p class="eyebrow">Incident</p>
+        <h1>@Model.Incident.Title</h1>
+        <p class="lead">@Model.Incident.Summary</p>
+    </div>
+    <div class="status-stack">
+        <span class="metric-copy">Started @Model.Incident.StartedUtc.ToLocalTime().ToString("g")</span>
+        <span class="metric-copy">Resolved @(Model.Incident.ResolvedUtc?.ToLocalTime().ToString("g") ?? "Ongoing")</span>
+    </div>
+</section>
+
+<section class="section-card">
+    <div class="section-header">
+        <h2>Affected Services</h2>
+    </div>
+    <div class="service-list">
+        @foreach (var service in Model.Incident.AffectedServices)
+        {
+            <div class="service-row static">
+                <div class="service-name">
+                    <strong>@service.ServiceName</strong>
+                    <span>@service.ImpactLevel</span>
+                </div>
+                <div class="service-metrics">
+                    <span>@(service.IsResolved ? "Recovered" : "Active")</span>
+                    <span>@(service.ResolvedUtc?.ToLocalTime().ToString("g") ?? "--")</span>
+                </div>
+            </div>
+        }
+    </div>
+</section>
+
+<section class="section-card">
+    <div class="section-header">
+        <h2>Timeline</h2>
+    </div>
+    <div class="timeline">
+        @foreach (var item in Model.Incident.Events)
+        {
+            <article class="timeline-item">
+                <strong>@item.Message</strong>
+                <span>@item.CreatedUtc.ToLocalTime().ToString("g")</span>
+                @if (!string.IsNullOrWhiteSpace(item.Body))
+                {
+                    <p>@item.Body</p>
+                }
+            </article>
+        }
+    </div>
+</section>
+
+@if (!string.IsNullOrWhiteSpace(Model.Incident.Postmortem))
+{
+    <section class="section-card">
+        <div class="section-header">
+            <h2>Postmortem</h2>
+        </div>
+        <div class="postmortem-body">@Model.Incident.Postmortem</div>
+    </section>
+}

@@ -1,0 +1,77 @@
+@page
+@model StatusPageSharp.Web.Pages.Admin.Maintenance.IndexModel
+@{
+    ViewData["Title"] = "Maintenance";
+}
+
+<section class="section-card">
+    <div class="section-header"><h1>Scheduled Maintenance</h1></div>
+    <form method="post" class="form-grid">
+        <input asp-for="Input.TimeZoneOffsetMinutes" type="hidden" id="maintenance-timezone-offset" />
+        <div class="form-grid two-up">
+            <div class="field">
+                <label asp-for="Input.Title">Title</label>
+                <input asp-for="Input.Title" />
+            </div>
+            <div class="field">
+                <label asp-for="Input.Summary">Summary</label>
+                <input asp-for="Input.Summary" />
+            </div>
+            <div class="field">
+                <label asp-for="Input.StartsUtc">Starts At</label>
+                <input asp-for="Input.StartsUtc" type="datetime-local" />
+            </div>
+            <div class="field">
+                <label asp-for="Input.EndsUtc">Ends At</label>
+                <input asp-for="Input.EndsUtc" type="datetime-local" />
+            </div>
+            <div class="field">
+                <label>Services</label>
+                <select asp-for="Input.ServiceIds" multiple size="8">
+                    @foreach (var service in Model.Services)
+                    {
+                        <option value="@service.Id">@service.Name</option>
+                    }
+                </select>
+            </div>
+        </div>
+        <div class="button-row">
+            <button class="button" type="submit">Schedule Maintenance</button>
+        </div>
+    </form>
+</section>
+
+<section class="section-card">
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Title</th>
+                <th>Window</th>
+                <th>Services</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+        @foreach (var item in Model.MaintenanceItems)
+        {
+            <tr>
+                <td>@item.Title</td>
+                <td>@item.StartsUtc.ToLocalTime().ToString("g") - @item.EndsUtc.ToLocalTime().ToString("g")</td>
+                <td>@string.Join(", ", item.ServiceNames)</td>
+                <td>
+                    <form method="post" asp-page-handler="Delete" class="inline-form" onsubmit="return confirm('Delete this scheduled maintenance window?');">
+                        <input type="hidden" name="id" value="@item.Id" />
+                        <button class="button-danger" type="submit">Delete</button>
+                    </form>
+                </td>
+            </tr>
+        }
+        </tbody>
+    </table>
+</section>
+
+@section Scripts {
+    <script>
+        document.getElementById("maintenance-timezone-offset").value = String(new Date().getTimezoneOffset());
+    </script>
+}

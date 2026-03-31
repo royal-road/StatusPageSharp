@@ -1,0 +1,72 @@
+@page
+@model StatusPageSharp.Web.Pages.Admin.Users.IndexModel
+@{
+    ViewData["Title"] = "Users";
+}
+
+<section class="section-card">
+    <div class="section-header"><h1>Admin Users</h1></div>
+    <form method="post" asp-page-handler="Create" class="form-grid two-up">
+        <div class="field">
+            <label asp-for="NewUser.Email">Email</label>
+            <input asp-for="NewUser.Email" />
+        </div>
+        <div class="field">
+            <label asp-for="NewUser.DisplayName">Display Name</label>
+            <input asp-for="NewUser.DisplayName" />
+        </div>
+        <div class="field">
+            <label asp-for="NewUser.Password">Password</label>
+            <input asp-for="NewUser.Password" type="password" />
+        </div>
+        <div class="button-row">
+            <button class="button" type="submit">Create User</button>
+        </div>
+    </form>
+</section>
+
+<section class="section-card">
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Email</th>
+                <th>Name</th>
+                <th>Status</th>
+                <th>Created</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+        @foreach (var user in Model.Users)
+        {
+            <tr>
+                <td>@user.Email</td>
+                <td>@user.DisplayName</td>
+                <td>@(user.IsEnabled ? "Enabled" : "Disabled")</td>
+                <td>@user.CreatedUtc.ToLocalTime().ToString("g")</td>
+                <td>
+                    <form method="post" asp-page-handler="Toggle" class="inline-form">
+                        <input type="hidden" name="id" value="@user.Id" />
+                        <input type="hidden" name="isEnabled" value="@(!user.IsEnabled)" />
+                        <button class="button-secondary" type="submit">@(user.IsEnabled ? "Disable" : "Enable")</button>
+                    </form>
+                </td>
+            </tr>
+            <tr>
+                <td colspan="5">
+                    <form method="post" asp-page-handler="ResetPassword" class="form-grid two-up">
+                        <input asp-for="PasswordReset.UserId" type="hidden" value="@user.Id" />
+                        <div class="field">
+                            <label asp-for="PasswordReset.NewPassword">Reset Password for @user.Email</label>
+                            <input asp-for="PasswordReset.NewPassword" />
+                        </div>
+                        <div class="button-row">
+                            <button class="button-secondary" type="submit">Reset Password</button>
+                        </div>
+                    </form>
+                </td>
+            </tr>
+        }
+        </tbody>
+    </table>
+</section>

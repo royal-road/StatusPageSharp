@@ -1,0 +1,37 @@
+@page
+@model StatusPageSharp.Web.Pages.Admin.Services.IndexModel
+@{
+    ViewData["Title"] = "Services";
+}
+
+<section class="section-card">
+    <div class="section-header">
+        <h1>Services</h1>
+        <a class="button" asp-page="/Admin/Services/Create">Create Service</a>
+    </div>
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Group</th>
+                <th>Monitor</th>
+                <th>Period</th>
+                <th>Status</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+        @foreach (var service in Model.Services)
+        {
+            <tr>
+                <td>@service.Name</td>
+                <td>@service.GroupName</td>
+                <td>@service.MonitorType</td>
+                <td>@service.CheckPeriodSeconds sec</td>
+                <td>@(service.IsEnabled ? "Enabled" : "Disabled")</td>
+                <td><a class="button-secondary" asp-page="/Admin/Services/Edit" asp-route-id="@service.Id">Edit</a></td>
+            </tr>
+        }
+        </tbody>
+    </table>
+</section>

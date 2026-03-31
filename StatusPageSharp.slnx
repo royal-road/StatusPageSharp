@@ -1,0 +1,13 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/StatusPageSharp.Application/StatusPageSharp.Application.csproj" />
+    <Project Path="src/StatusPageSharp.Domain/StatusPageSharp.Domain.csproj" />
+    <Project Path="src/StatusPageSharp.Infrastructure/StatusPageSharp.Infrastructure.csproj" />
+    <Project Path="src/StatusPageSharp.Web/StatusPageSharp.Web.csproj" />
+    <Project Path="src/StatusPageSharp.Worker/StatusPageSharp.Worker.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/StatusPageSharp.Domain.Tests/StatusPageSharp.Domain.Tests.csproj" />
+    <Project Path="tests/StatusPageSharp.Infrastructure.Tests/StatusPageSharp.Infrastructure.Tests.csproj" />
+  </Folder>
+</Solution>
