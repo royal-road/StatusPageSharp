@@ -14,6 +14,13 @@ public static class SocialStatusCardRenderer
 {
     private const int Width = 1200;
     private const int Height = 630;
+    private const int MaxRenderedGroups = 3;
+    private const float PanelBottom = 588f;
+    private const float GroupRowsTop = 338f;
+    private const float GroupRowStep = 72f;
+    private const float FooterBottomPadding = 12f;
+    private const float BadgeHeight = 76f;
+    private const float BadgeTextGap = 4f;
 
     private static readonly Color Background = Color.FromRgb(6, 6, 11);
     private static readonly Color Panel = Color.FromRgba(18, 18, 28, 255);
@@ -26,15 +33,17 @@ public static class SocialStatusCardRenderer
     public static byte[] Render(PublicSiteSummaryModel siteSummary)
     {
         var monitoredServices = siteSummary.Groups.Sum(group => group.Services.Count);
-        var renderedGroups = siteSummary
-            .Groups.OrderByDescending(group => GetStatusPriority(group.Status))
-            .ThenBy(group => group.Name)
-            .Take(4)
-            .ToArray();
+        var renderedGroups = siteSummary.Groups.Take(MaxRenderedGroups).ToArray();
 
         using var image = new Image<Rgba32>(Width, Height, Background);
         image.Mutate(context =>
         {
+            var footer =
+                $"{StatusDisplayHelper.ToLabel(siteSummary.SiteStatus)} | Generated {DateTime.UtcNow:MMM d, yyyy HH:mm 'UTC'}";
+            var footerFont = CreateFont(18);
+            var footerY =
+                PanelBottom - FooterBottomPadding - MeasureTextSize(footer, footerFont).Height;
+
             context.Fill(Accent.WithAlpha(0.2f), new RectangleF(42, 42, 1116, 10));
             context.Fill(Panel, new RectangleF(42, 52, 1116, 536));
             context.Fill(Color.FromRgba(47, 47, 78, 255), new RectangleF(62, 72, 1076, 1));
@@ -77,7 +86,7 @@ public static class SocialStatusCardRenderer
                 336
             );
 
-            var rowY = 356f;
+            var rowY = GroupRowsTop;
             if (renderedGroups.Length == 0)
             {
                 DrawEmptyState(context, rowY);
@@ -87,13 +96,11 @@ public static class SocialStatusCardRenderer
                 foreach (var group in renderedGroups)
                 {
                     DrawGroupRow(context, group, rowY);
-                    rowY += 78f;
+                    rowY += GroupRowStep;
                 }
             }
 
-            var footer =
-                $"{StatusDisplayHelper.ToLabel(siteSummary.SiteStatus)} | Generated {DateTime.UtcNow:MMM d, yyyy HH:mm 'UTC'}";
-            context.DrawText(footer, CreateFont(18), MutedForeground, new PointF(64, 568));
+            context.DrawText(footer, footerFont, MutedForeground, new PointF(64, footerY));
         });
 
         using var stream = new MemoryStream();
@@ -112,19 +119,23 @@ public static class SocialStatusCardRenderer
     private static void DrawStatusBadge(IImageProcessingContext context, ServiceStatus siteStatus)
     {
         var badgeColor = GetStatusColor(siteStatus);
-        context.Fill(badgeColor.WithAlpha(0.18f), new RectangleF(862, 88, 274, 68));
-        context.Fill(badgeColor, new RectangleF(862, 88, 6, 68));
+        var title = StatusDisplayHelper.ToLabel(siteStatus);
+        var subtitle = "Current site status";
+        var titleFont = CreateFont(28, FontStyle.Bold);
+        var subtitleFont = CreateFont(18);
+        var titleHeight = MeasureTextSize(title, titleFont).Height;
+        var subtitleHeight = MeasureTextSize(subtitle, subtitleFont).Height;
+        var contentY =
+            88f + Math.Max(8f, (BadgeHeight - titleHeight - BadgeTextGap - subtitleHeight) / 2f);
+
+        context.Fill(badgeColor.WithAlpha(0.18f), new RectangleF(862, 88, 274, BadgeHeight));
+        context.Fill(badgeColor, new RectangleF(862, 88, 6, BadgeHeight));
+        context.DrawText(title, titleFont, Foreground, new PointF(888, contentY));
         context.DrawText(
-            StatusDisplayHelper.ToLabel(siteStatus),
-            CreateFont(28, FontStyle.Bold),
-            Foreground,
-            new PointF(888, 108)
-        );
-        context.DrawText(
-            "Current site status",
-            CreateFont(18),
+            subtitle,
+            subtitleFont,
             MutedForeground,
-            new PointF(888, 134)
+            new PointF(888, contentY + titleHeight + BadgeTextGap)
         );
     }
 
@@ -160,11 +171,7 @@ public static class SocialStatusCardRenderer
     )
     {
         var groupColor = GetStatusColor(group.Status);
-        var orderedServices = group
-            .Services.OrderByDescending(service => GetStatusPriority(service.Status))
-            .ThenBy(service => service.Name)
-            .Take(12)
-            .ToArray();
+        var orderedServices = group.Services.Take(12).ToArray();
 
         context.Fill(SurfaceMuted, new RectangleF(64, y, 1072, 62));
         context.Fill(groupColor, new RectangleF(64, y, 8, 62));
@@ -240,18 +247,11 @@ public static class SocialStatusCardRenderer
         );
     }
 
+    private static FontRectangle MeasureTextSize(string value, Font font) =>
+        TextMeasurer.MeasureSize(value, new TextOptions(font));
+
     private static string Truncate(string value, int maxLength) =>
         value.Length <= maxLength ? value : $"{value[..Math.Max(0, maxLength - 3)]}...";
-
-    private static int GetStatusPriority(ServiceStatus status) =>
-        status switch
-        {
-            ServiceStatus.MajorOutage => 4,
-            ServiceStatus.PartialOutage => 3,
-            ServiceStatus.UnderMaintenance => 2,
-            ServiceStatus.Operational => 1,
-            _ => 0,
-        };
 
     private static Color GetMetricColor(bool isImpacted, ServiceStatus siteStatus) =>
         isImpacted ? Color.FromRgb(244, 63, 94) : GetStatusColor(siteStatus);

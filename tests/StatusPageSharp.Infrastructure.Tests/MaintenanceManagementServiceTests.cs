@@ -156,12 +156,11 @@ public class MaintenanceManagementServiceTests
             )
             .OrderBy(link => link.ServiceId)
             .ToListAsync();
+        Guid[] expectedServiceIds = [existingService.Id, addedService.Id];
+        Array.Sort(expectedServiceIds);
 
         Assert.Equal(2, links.Count);
-        Assert.Equal(
-            [existingService.Id, addedService.Id],
-            links.Select(link => link.ServiceId).ToArray()
-        );
+        Assert.Equal(expectedServiceIds, links.Select(link => link.ServiceId).ToArray());
     }
 
     private static ApplicationDbContext CreateDbContext()
