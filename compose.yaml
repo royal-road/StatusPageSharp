@@ -22,9 +22,8 @@ services:
       - postgres-data:/var/lib/postgresql/data
 
   web:
-    build:
-      context: .
-      dockerfile: src/StatusPageSharp.Web/Dockerfile
+    image: ${STATUSPAGE_WEB_IMAGE:-ghcr.io/royal-road/statuspagesharp-web:main}
+    pull_policy: always
     depends_on:
       postgres:
         condition: service_healthy
@@ -43,9 +42,8 @@ services:
       - web-data-protection:/root/.aspnet/DataProtection-Keys
 
   worker:
-    build:
-      context: .
-      dockerfile: src/StatusPageSharp.Worker/Dockerfile
+    image: ${STATUSPAGE_WORKER_IMAGE:-ghcr.io/royal-road/statuspagesharp-worker:main}
+    pull_policy: always
     depends_on:
       postgres:
         condition: service_healthy
@@ -57,4 +55,6 @@ services:
 
 volumes:
   postgres-data:
+    name: statuspagesharp-postgres-data
   web-data-protection:
+    name: statuspagesharp-web-data-protection
