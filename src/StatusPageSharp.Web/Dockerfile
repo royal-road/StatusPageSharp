@@ -4,7 +4,7 @@ WORKDIR /src/StatusPageSharp.Web
 COPY src/StatusPageSharp.Web/package.json src/StatusPageSharp.Web/package-lock.json ./
 RUN npm ci --prefer-offline
 
-COPY src/StatusPageSharp.Web/Styles ./Styles
+COPY src/StatusPageSharp.Web/ ./
 RUN npm run css:build
 
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
