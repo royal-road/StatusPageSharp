@@ -37,6 +37,10 @@ builder.Services.ConfigureApplicationCookie(options =>
         }
     };
 });
+builder.Services.AddOutputCache(options =>
+{
+    options.AddPolicy("StatusCard", policy => policy.Expire(TimeSpan.FromSeconds(30)));
+});
 
 builder.Services.AddRazorPages(options =>
 {
@@ -70,6 +74,7 @@ if (!runningInContainer)
 app.UseRouting();
 app.UseAuthentication();
 app.UseAuthorization();
+app.UseOutputCache();
 
 app.MapStaticAssets();
 app.MapRazorPages().WithStaticAssets();

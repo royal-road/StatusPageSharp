@@ -1,4 +1,5 @@
 using StatusPageSharp.Application.Abstractions;
+using StatusPageSharp.Web.Rendering;
 
 namespace StatusPageSharp.Web.Extensions;
 
@@ -54,6 +55,21 @@ public static class ApiEndpointRouteBuilderExtensions
                 return incident is null ? Results.NotFound() : Results.Ok(incident);
             }
         );
+        publicApi
+            .MapGet(
+                "/status-card.png",
+                async (
+                    IPublicStatusService publicStatusService,
+                    CancellationToken cancellationToken
+                ) =>
+                    TypedResults.File(
+                        SocialStatusCardRenderer.Render(
+                            await publicStatusService.GetSiteSummaryAsync(cancellationToken)
+                        ),
+                        "image/png"
+                    )
+            )
+            .CacheOutput("StatusCard");
 
         var adminApi = endpointRouteBuilder
             .MapGroup("/api/admin")
