@@ -8,8 +8,10 @@ using StatusPageSharp.Infrastructure.Data;
 
 namespace StatusPageSharp.Infrastructure.Services;
 
-public sealed class IncidentManagementService(ApplicationDbContext dbContext, IClock clock)
-    : IIncidentManagementService
+public sealed class IncidentManagementService(
+    ApplicationDbContext dbContext,
+    TimeProvider timeProvider
+) : IIncidentManagementService
 {
     public async Task<IReadOnlyList<PublicIncidentSummaryModel>> GetIncidentSummariesAsync(
         CancellationToken cancellationToken
@@ -122,7 +124,7 @@ public sealed class IncidentManagementService(ApplicationDbContext dbContext, IC
             throw new InvalidOperationException("At least one affected service is required.");
         }
 
-        var now = clock.UtcNow;
+        var now = timeProvider.GetUtcNow().UtcDateTime;
         var incident = await dbContext
             .Incidents.Include(item => item.AffectedServices)
                 .ThenInclude(item => item.Service)
@@ -194,7 +196,7 @@ public sealed class IncidentManagementService(ApplicationDbContext dbContext, IC
             IncidentEventType.Update,
             model.Message.Trim(),
             NormalizeOptionalText(model.Body),
-            clock.UtcNow,
+            timeProvider.GetUtcNow().UtcDateTime,
             userId,
             false
         );
@@ -209,7 +211,7 @@ public sealed class IncidentManagementService(ApplicationDbContext dbContext, IC
         CancellationToken cancellationToken
     )
     {
-        var now = clock.UtcNow;
+        var now = timeProvider.GetUtcNow().UtcDateTime;
         var incident = await dbContext
             .Incidents.Include(item => item.AffectedServices)
                 .ThenInclude(item => item.Service)
@@ -314,7 +316,7 @@ public sealed class IncidentManagementService(ApplicationDbContext dbContext, IC
         CancellationToken cancellationToken
     )
     {
-        var now = clock.UtcNow;
+        var now = timeProvider.GetUtcNow().UtcDateTime;
         var incident = await dbContext
             .Incidents.Include(item => item.AffectedServices)
             .Include(item => item.Events)

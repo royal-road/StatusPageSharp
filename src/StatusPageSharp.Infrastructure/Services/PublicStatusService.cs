@@ -8,14 +8,14 @@ using StatusPageSharp.Infrastructure.Data;
 
 namespace StatusPageSharp.Infrastructure.Services;
 
-public sealed class PublicStatusService(ApplicationDbContext dbContext, IClock clock)
+public sealed class PublicStatusService(ApplicationDbContext dbContext, TimeProvider timeProvider)
     : IPublicStatusService
 {
     public async Task<PublicSiteSummaryModel> GetSiteSummaryAsync(
         CancellationToken cancellationToken
     )
     {
-        var now = clock.UtcNow;
+        var now = timeProvider.GetUtcNow().UtcDateTime;
         var siteSetting = await GetSiteSettingAsync(cancellationToken);
         var groups = await dbContext
             .ServiceGroups.AsNoTracking()
@@ -116,8 +116,9 @@ public sealed class PublicStatusService(ApplicationDbContext dbContext, IClock c
 
         var history = await BuildHistoryAsync(service, cancellationToken);
         var activeImpacts = await GetActiveImpactsAsync(cancellationToken);
+        var now = timeProvider.GetUtcNow().UtcDateTime;
         var maintenanceServiceIds = await GetActiveMaintenanceServiceIdsAsync(
-            clock.UtcNow,
+            now,
             cancellationToken
         );
         var status = StatusCalculator.CalculateServiceStatus(
@@ -202,7 +203,7 @@ public sealed class PublicStatusService(ApplicationDbContext dbContext, IClock c
 
     public async Task<IReadOnlyList<PublicMaintenanceSummaryModel>> GetPublicMaintenanceAsync(
         CancellationToken cancellationToken
-    ) => await GetPublicMaintenanceAsync(clock.UtcNow, cancellationToken);
+    ) => await GetPublicMaintenanceAsync(timeProvider.GetUtcNow().UtcDateTime, cancellationToken);
 
     private async Task<ServiceHistorySeriesModel> BuildHistoryAsync(
         Service service,
@@ -300,7 +301,9 @@ public sealed class PublicStatusService(ApplicationDbContext dbContext, IClock c
         CancellationToken cancellationToken
     )
     {
-        var startDay = DateOnly.FromDateTime(clock.UtcNow.Date.AddDays(-29));
+        var startDay = DateOnly.FromDateTime(
+            timeProvider.GetUtcNow().UtcDateTime.Date.AddDays(-29)
+        );
         var aggregates = await dbContext
             .DailyServiceRollups.AsNoTracking()
             .Where(rollup => rollup.Day >= startDay)
@@ -326,7 +329,9 @@ public sealed class PublicStatusService(ApplicationDbContext dbContext, IClock c
         CancellationToken cancellationToken
     )
     {
-        var startDay = DateOnly.FromDateTime(clock.UtcNow.Date.AddDays(-29));
+        var startDay = DateOnly.FromDateTime(
+            timeProvider.GetUtcNow().UtcDateTime.Date.AddDays(-29)
+        );
         var rollups = await dbContext
             .DailyServiceRollups.AsNoTracking()
             .Where(rollup => rollup.Day >= startDay)
@@ -365,7 +370,9 @@ public sealed class PublicStatusService(ApplicationDbContext dbContext, IClock c
         CancellationToken cancellationToken
     )
     {
-        var startDay = DateOnly.FromDateTime(clock.UtcNow.Date.AddDays(-29));
+        var startDay = DateOnly.FromDateTime(
+            timeProvider.GetUtcNow().UtcDateTime.Date.AddDays(-29)
+        );
         var rollups = await dbContext
             .DailyServiceRollups.AsNoTracking()
             .Where(rollup => rollup.ServiceId == serviceId && rollup.Day >= startDay)
@@ -396,7 +403,9 @@ public sealed class PublicStatusService(ApplicationDbContext dbContext, IClock c
         CancellationToken cancellationToken
     )
     {
-        var startDay = DateOnly.FromDateTime(clock.UtcNow.Date.AddDays(-29));
+        var startDay = DateOnly.FromDateTime(
+            timeProvider.GetUtcNow().UtcDateTime.Date.AddDays(-29)
+        );
         var aggregates = await dbContext
             .DailyServiceRollups.AsNoTracking()
             .Where(rollup => rollup.ServiceId == serviceId && rollup.Day >= startDay)

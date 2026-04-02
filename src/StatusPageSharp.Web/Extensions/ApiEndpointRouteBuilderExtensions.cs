@@ -62,14 +62,16 @@ public static class ApiEndpointRouteBuilderExtensions
                 async (
                     HttpContext httpContext,
                     IPublicStatusService publicStatusService,
+                    TimeProvider timeProvider,
                     CancellationToken cancellationToken
                 ) =>
                 {
                     StatusCardResponseCacheHeaders.Apply(httpContext.Response.Headers);
+                    var siteSummary = await publicStatusService.GetSiteSummaryAsync(
+                        cancellationToken
+                    );
                     return TypedResults.File(
-                        SocialStatusCardRenderer.Render(
-                            await publicStatusService.GetSiteSummaryAsync(cancellationToken)
-                        ),
+                        SocialStatusCardRenderer.Render(siteSummary, timeProvider.GetUtcNow()),
                         "image/png"
                     );
                 }

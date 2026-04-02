@@ -44,6 +44,7 @@ public static class ApplicationSetupExtensions
             .ServiceProvider.GetRequiredService<IOptions<BootstrapAdminOptions>>()
             .Value;
         var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+        var timeProvider = scope.ServiceProvider.GetService<TimeProvider>() ?? TimeProvider.System;
 
         if (bootstrapOptions.Enabled && !await userManager.Users.AnyAsync(cancellationToken))
         {
@@ -63,7 +64,7 @@ public static class ApplicationSetupExtensions
                 Email = bootstrapOptions.Email,
                 DisplayName = bootstrapOptions.DisplayName,
                 EmailConfirmed = true,
-                CreatedUtc = DateTime.UtcNow,
+                CreatedUtc = timeProvider.GetUtcNow().UtcDateTime,
                 IsEnabled = true,
             };
 

@@ -11,13 +11,13 @@ namespace StatusPageSharp.Infrastructure.Services;
 public sealed class MonitoringCoordinator(
     IDbContextFactory<ApplicationDbContext> dbContextFactory,
     MonitorProbeClient monitorProbeClient,
-    IClock clock
+    TimeProvider timeProvider
 ) : IMonitoringCoordinator
 {
     public async Task<int> ExecuteDueChecksAsync(CancellationToken cancellationToken)
     {
         await using var dbContext = await dbContextFactory.CreateDbContextAsync(cancellationToken);
-        var now = clock.UtcNow;
+        var now = timeProvider.GetUtcNow().UtcDateTime;
         var dueServiceIds = await dbContext
             .Services.Where(service =>
                 service.IsEnabled && (service.NextCheckUtc == null || service.NextCheckUtc <= now)
@@ -41,7 +41,7 @@ public sealed class MonitoringCoordinator(
         var serviceIds = await dbContext
             .Services.Select(service => service.Id)
             .ToListAsync(cancellationToken);
-        var now = clock.UtcNow;
+        var now = timeProvider.GetUtcNow().UtcDateTime;
         foreach (var serviceId in serviceIds)
         {
             await UpdateRollupsAsync(dbContext, serviceId, now, cancellationToken);
@@ -62,7 +62,7 @@ public sealed class MonitoringCoordinator(
         var services = await dbContext
             .Services.Select(service => new { service.Id, service.RawRetentionDaysOverride })
             .ToListAsync(cancellationToken);
-        var now = clock.UtcNow;
+        var now = timeProvider.GetUtcNow().UtcDateTime;
 
         foreach (var service in services)
         {
@@ -87,7 +87,7 @@ public sealed class MonitoringCoordinator(
             .Services.Include(item => item.MonitorDefinition)
             .SingleAsync(item => item.Id == serviceId, cancellationToken);
 
-        var now = clock.UtcNow;
+        var now = timeProvider.GetUtcNow().UtcDateTime;
         service.LastCheckStartedUtc = now;
 
         var isUnderMaintenance = await dbContext.ScheduledMaintenanceServices.AnyAsync(
@@ -102,7 +102,7 @@ public sealed class MonitoringCoordinator(
             BuildProbeRequest(service),
             cancellationToken
         );
-        service.LastCheckCompletedUtc = clock.UtcNow;
+        service.LastCheckCompletedUtc = timeProvider.GetUtcNow().UtcDateTime;
         service.LastLatencyMilliseconds = probeResult.DurationMilliseconds;
         service.LastFailureKind = probeResult.FailureKind;
         service.LastFailureMessage = probeResult.FailureMessage;
@@ -194,7 +194,7 @@ public sealed class MonitoringCoordinator(
             return;
         }
 
-        var now = clock.UtcNow;
+        var now = timeProvider.GetUtcNow().UtcDateTime;
         var incident = await dbContext
             .Incidents.Include(item => item.AffectedServices)
                 .ThenInclude(item => item.Service)
@@ -286,7 +286,7 @@ public sealed class MonitoringCoordinator(
             return;
         }
 
-        var now = clock.UtcNow;
+        var now = timeProvider.GetUtcNow().UtcDateTime;
         affectedService.IsResolved = true;
         affectedService.ResolvedUtc = now;
 

@@ -63,7 +63,7 @@ public static class SocialStatusCardRenderer
         return Convert.ToHexString(hash[..8]).ToLowerInvariant();
     }
 
-    public static byte[] Render(PublicSiteSummaryModel siteSummary)
+    public static byte[] Render(PublicSiteSummaryModel siteSummary, DateTimeOffset generatedUtc)
     {
         var monitoredServices = siteSummary.Groups.Sum(group => group.Services.Count);
         var renderedGroups = siteSummary.Groups.Take(MaxRenderedGroups).ToArray();
@@ -72,7 +72,7 @@ public static class SocialStatusCardRenderer
         image.Mutate(context =>
         {
             var footer =
-                $"{StatusDisplayHelper.ToLabel(siteSummary.SiteStatus)} | Generated {DateTime.UtcNow:MMM d, yyyy HH:mm 'UTC'}";
+                $"{StatusDisplayHelper.ToLabel(siteSummary.SiteStatus)} | Generated {generatedUtc.UtcDateTime:MMM d, yyyy HH:mm 'UTC'}";
             var footerFont = CreateFont(18);
             var footerY =
                 PanelBottom - FooterBottomPadding - MeasureTextSize(footer, footerFont).Height;

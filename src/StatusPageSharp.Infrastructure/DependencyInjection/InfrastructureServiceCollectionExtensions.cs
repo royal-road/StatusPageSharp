@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using StatusPageSharp.Application.Abstractions;
 using StatusPageSharp.Infrastructure.Configuration;
 using StatusPageSharp.Infrastructure.Data;
@@ -48,21 +49,21 @@ public static class InfrastructureServiceCollectionExtensions
 
     private static void AddStatusPageApplicationServices(this IServiceCollection services)
     {
+        services.TryAddSingleton<TimeProvider>(TimeProvider.System);
         services.AddScoped<IPublicStatusService, PublicStatusService>();
         services.AddScoped<IAdminCatalogService, AdminCatalogService>();
         services.AddScoped<IIncidentManagementService, IncidentManagementService>();
         services.AddScoped<IMaintenanceManagementService, MaintenanceManagementService>();
         services.AddScoped<ISiteSettingsService, SiteSettingsService>();
         services.AddScoped<IUserManagementService, UserManagementService>();
-        services.AddSingleton<IClock, SystemClock>();
     }
 
     private static void AddStatusPageMonitoringServices(this IServiceCollection services)
     {
+        services.TryAddSingleton<TimeProvider>(TimeProvider.System);
         services.AddHttpClient();
         services.AddTransient<MonitorProbeClient>();
         services.AddSingleton<IMonitoringCoordinator, MonitoringCoordinator>();
-        services.AddSingleton<IClock, SystemClock>();
     }
 
     private static void ConfigureDatabase(

@@ -8,11 +8,13 @@ namespace StatusPageSharp.Infrastructure.Services;
 
 public sealed class AdminCatalogService(
     ApplicationDbContext dbContext,
-    IPublicStatusService publicStatusService
+    IPublicStatusService publicStatusService,
+    TimeProvider timeProvider
 ) : IAdminCatalogService
 {
     public async Task<AdminDashboardModel> GetDashboardAsync(CancellationToken cancellationToken)
     {
+        var now = timeProvider.GetUtcNow().UtcDateTime;
         var siteSummary = await publicStatusService.GetSiteSummaryAsync(cancellationToken);
         var serviceCount = await dbContext.Services.CountAsync(cancellationToken);
         var groupCount = await dbContext.ServiceGroups.CountAsync(cancellationToken);
@@ -21,7 +23,7 @@ public sealed class AdminCatalogService(
             cancellationToken
         );
         var activeMaintenanceCount = await dbContext.ScheduledMaintenances.CountAsync(
-            item => item.StartsUtc <= DateTime.UtcNow && item.EndsUtc > DateTime.UtcNow,
+            item => item.StartsUtc <= now && item.EndsUtc > now,
             cancellationToken
         );
 
@@ -126,6 +128,7 @@ public sealed class AdminCatalogService(
         CancellationToken cancellationToken
     )
     {
+        var now = timeProvider.GetUtcNow().UtcDateTime;
         var entity = new Service
         {
             ServiceGroupId = model.ServiceGroupId,
@@ -140,7 +143,7 @@ public sealed class AdminCatalogService(
             FailureThreshold = model.FailureThreshold,
             RecoveryThreshold = model.RecoveryThreshold,
             RawRetentionDaysOverride = model.RawRetentionDaysOverride,
-            NextCheckUtc = DateTime.UtcNow,
+            NextCheckUtc = now,
             MonitorDefinition = new MonitorDefinition
             {
                 MonitorType = model.MonitorType,

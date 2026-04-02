@@ -11,7 +11,7 @@ namespace StatusPageSharp.Infrastructure.Services;
 public sealed class UserManagementService(
     UserManager<ApplicationUser> userManager,
     RoleManager<IdentityRole> roleManager,
-    IClock clock
+    TimeProvider timeProvider
 ) : IUserManagementService
 {
     public async Task<IReadOnlyList<UserAdminModel>> GetUsersAsync(
@@ -50,7 +50,7 @@ public sealed class UserManagementService(
                 : model.DisplayName.Trim(),
             EmailConfirmed = true,
             IsEnabled = true,
-            CreatedUtc = clock.UtcNow,
+            CreatedUtc = timeProvider.GetUtcNow().UtcDateTime,
         };
 
         var result = await userManager.CreateAsync(user, model.Password);

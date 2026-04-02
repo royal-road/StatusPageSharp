@@ -46,7 +46,7 @@ public class PublicStatusServiceTests
 
         await dbContext.SaveChangesAsync();
 
-        var serviceUnderTest = new PublicStatusService(dbContext, new TestClock(now));
+        var serviceUnderTest = new PublicStatusService(dbContext, new TestTimeProvider(now));
 
         var details = await serviceUnderTest.GetServiceDetailsAsync(
             service.Slug,

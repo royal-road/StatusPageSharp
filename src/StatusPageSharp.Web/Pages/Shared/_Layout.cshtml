@@ -4,6 +4,7 @@
 @using StatusPageSharp.Web.Rendering
 @inject IPublicStatusService PublicStatusService
 @inject ISiteSettingsService SiteSettingsService
+@inject TimeProvider TimeProvider
 @{
     var siteSettings = await SiteSettingsService.GetSettingsAsync(Context.RequestAborted);
     var statusCardSummary = await PublicStatusService.GetSiteSummaryAsync(Context.RequestAborted);
@@ -75,7 +76,7 @@
         </main>
 
         <footer class="flex items-center justify-between gap-4 py-8 mt-12 border-t border-border text-xs text-muted-foreground/60 tracking-wide max-md:flex-col max-md:text-center max-md:gap-1">
-            <span>&copy; @DateTime.UtcNow.Year @siteSettings.SiteTitle</span>
+            <span>&copy; @TimeProvider.GetUtcNow().UtcDateTime.Year @siteSettings.SiteTitle</span>
             <span class="font-mono text-[0.7rem]">Powered by StatusPageSharp</span>
         </footer>
     </div>

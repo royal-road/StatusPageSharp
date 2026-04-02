@@ -27,7 +27,10 @@ public class IncidentManagementServiceTests
 
         await using (var actionContext = new ApplicationDbContext(options))
         {
-            var serviceUnderTest = new IncidentManagementService(actionContext, new TestClock(now));
+            var serviceUnderTest = new IncidentManagementService(
+                actionContext,
+                new TestTimeProvider(now)
+            );
 
             await serviceUnderTest.CreateManualIncidentAsync(
                 new ManualIncidentUpsertModel
@@ -96,7 +99,10 @@ public class IncidentManagementServiceTests
 
         await using (var actionContext = new ApplicationDbContext(options))
         {
-            var serviceUnderTest = new IncidentManagementService(actionContext, new TestClock(now));
+            var serviceUnderTest = new IncidentManagementService(
+                actionContext,
+                new TestTimeProvider(now)
+            );
 
             await serviceUnderTest.ResolveIncidentAsync(
                 incidentId,

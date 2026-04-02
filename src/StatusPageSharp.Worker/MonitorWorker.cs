@@ -4,7 +4,8 @@ namespace StatusPageSharp.Worker;
 
 public sealed class MonitorWorker(
     IMonitoringCoordinator monitoringCoordinator,
-    ILogger<MonitorWorker> logger
+    ILogger<MonitorWorker> logger,
+    TimeProvider timeProvider
 ) : BackgroundService
 {
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -25,7 +26,7 @@ public sealed class MonitorWorker(
                     logger.LogInformation("Executed {CheckCount} due checks.", executedChecks);
                 }
 
-                var now = DateTime.UtcNow;
+                var now = timeProvider.GetUtcNow().UtcDateTime;
                 if (now - lastDerivedRefreshUtc >= TimeSpan.FromMinutes(5))
                 {
                     await monitoringCoordinator.RefreshDerivedDataAsync(stoppingToken);

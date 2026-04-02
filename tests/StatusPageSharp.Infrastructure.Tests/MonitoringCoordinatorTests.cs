@@ -89,7 +89,7 @@ public class MonitoringCoordinatorTests
         var coordinator = new MonitoringCoordinator(
             new TestDbContextFactory(options),
             new MonitorProbeClient(new TestHttpClientFactory(httpClient)),
-            new TestClock(now)
+            new TestTimeProvider(now)
         );
 
         var result = await coordinator.ExecuteCheckAsync(serviceId, CancellationToken.None);
@@ -155,7 +155,7 @@ public class MonitoringCoordinatorTests
         var coordinator = new MonitoringCoordinator(
             new TestDbContextFactory(options),
             new MonitorProbeClient(new TestHttpClientFactory(httpClient)),
-            new TestClock(now)
+            new TestTimeProvider(now)
         );
 
         await coordinator.ExecuteCheckAsync(serviceId, CancellationToken.None);
@@ -232,7 +232,7 @@ public class MonitoringCoordinatorTests
         var coordinator = new MonitoringCoordinator(
             new TestDbContextFactory(options),
             new MonitorProbeClient(new TestHttpClientFactory(new HttpClient())),
-            new TestClock(now)
+            new TestTimeProvider(now)
         );
 
         await coordinator.RefreshDerivedDataAsync(CancellationToken.None);

@@ -6,12 +6,12 @@ namespace StatusPageSharp.Web.Pages.Admin.Maintenance;
 
 public class IndexModel(
     IMaintenanceManagementService maintenanceManagementService,
-    IAdminCatalogService adminCatalogService
+    IAdminCatalogService adminCatalogService,
+    TimeProvider timeProvider
 ) : AdminPageModel
 {
     [BindProperty]
-    public MaintenanceUpsertModel Input { get; set; } =
-        new() { StartsUtc = DateTime.UtcNow, EndsUtc = DateTime.UtcNow.AddHours(1) };
+    public MaintenanceUpsertModel Input { get; set; } = CreateDefaultInput(timeProvider);
 
     public IReadOnlyList<ServiceAdminModel> Services { get; private set; } = [];
 
@@ -49,5 +49,11 @@ public class IndexModel(
     {
         await maintenanceManagementService.DeleteMaintenanceAsync(id, HttpContext.RequestAborted);
         return RedirectToPage();
+    }
+
+    private static MaintenanceUpsertModel CreateDefaultInput(TimeProvider timeProvider)
+    {
+        var now = timeProvider.GetUtcNow().UtcDateTime;
+        return new MaintenanceUpsertModel { StartsUtc = now, EndsUtc = now.AddHours(1) };
     }
 }

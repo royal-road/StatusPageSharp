@@ -1,6 +1,7 @@
 @model AvailabilityBarSeriesModel
+@inject TimeProvider TimeProvider
 @{
-    var startDay = DateOnly.FromDateTime(DateTime.UtcNow.Date.AddDays(-29));
+    var startDay = DateOnly.FromDateTime(TimeProvider.GetUtcNow().UtcDateTime.Date.AddDays(-29));
     var endDay = startDay.AddDays(29);
     var dailyLookup = Model.DailyStatuses.ToDictionary(item => item.Day, item => item);
     var containerClass = Model.AllowWrap ? "availability-bars availability-bars-wrap" : "availability-bars availability-bars-inline";
