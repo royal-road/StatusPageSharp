@@ -27,11 +27,12 @@
             continue;
         }
 
-        var barClass = dailyStatus.IsOperational ? "availability-bar-ok" : "availability-bar-bad";
+        var barClass = AvailabilityBarDisplayHelper.ToCssClass(dailyStatus);
         var downtimePercentage = 100m - dailyStatus.UptimePercentage;
+        var incidentSummary = AvailabilityBarDisplayHelper.ToSummary(dailyStatus);
         <div class="availability-bar @barClass @dividerClass"
-             data-tooltip="@($"{day:MMM d, yyyy}&#10;{downtimePercentage:0.00}% downtime")"
-             aria-label="@($"{day:MMM d, yyyy}: {downtimePercentage:0.00}% downtime")"></div>
+             data-tooltip="@($"{day:MMM d, yyyy}&#10;{incidentSummary}&#10;{downtimePercentage:0.00}% downtime")"
+             aria-label="@($"{day:MMM d, yyyy}: {incidentSummary}, {downtimePercentage:0.00}% downtime")"></div>
     }
 </div>
 @if (Model.ShowScale)

@@ -1,3 +1,8 @@
 namespace StatusPageSharp.Application.Models.Public;
 
-public sealed record DailyStatusModel(DateOnly Day, bool IsOperational, decimal UptimePercentage);
+public sealed record DailyStatusModel(
+    DateOnly Day,
+    bool IsOperational,
+    bool HasIncidents,
+    decimal UptimePercentage
+);

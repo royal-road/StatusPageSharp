@@ -323,6 +323,11 @@
   box-shadow: 0 0 4px rgba(61, 219, 169, 0.15);
 }
 
+.availability-bar-warn {
+  background: rgba(240, 197, 66, 0.5);
+  box-shadow: 0 0 4px rgba(240, 197, 66, 0.15);
+}
+
 .availability-bar-bad {
   background: rgba(255, 107, 107, 0.5);
   box-shadow: 0 0 4px rgba(255, 107, 107, 0.15);
@@ -397,6 +402,11 @@
 .service-row:hover .availability-bar-ok {
   background: rgba(61, 219, 169, 0.7);
   box-shadow: 0 0 6px rgba(61, 219, 169, 0.25);
+}
+
+.service-row:hover .availability-bar-warn {
+  background: rgba(240, 197, 66, 0.7);
+  box-shadow: 0 0 6px rgba(240, 197, 66, 0.25);
 }
 
 .service-row:hover .availability-bar-bad {

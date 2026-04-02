@@ -27,4 +27,6 @@ public class DailyServiceRollup
     public int DowntimeMinutes { get; set; }
 
     public int MaintenanceMinutes { get; set; }
+
+    public int IncidentCount { get; set; }
 }

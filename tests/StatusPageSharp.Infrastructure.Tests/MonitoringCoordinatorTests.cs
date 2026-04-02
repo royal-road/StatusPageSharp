@@ -106,4 +106,142 @@ public class MonitoringCoordinatorTests
         Assert.Equal(3, incident.Events.Count);
         Assert.All(incident.AffectedServices, item => Assert.True(item.IsResolved));
     }
+
+    [Fact]
+    public async Task ExecuteCheckAsync_SyncsIncidentCountWhenAutomaticIncidentIsOpened()
+    {
+        var now = new DateTime(2026, 4, 2, 12, 0, 0, DateTimeKind.Utc);
+        var options = new DbContextOptionsBuilder<ApplicationDbContext>()
+            .UseInMemoryDatabase(Guid.NewGuid().ToString())
+            .Options;
+
+        Guid serviceId;
+        await using (var seedContext = new ApplicationDbContext(options))
+        {
+            var service = new Service
+            {
+                ServiceGroup = new ServiceGroup { Name = "Core", Slug = "core" },
+                Name = "API",
+                Slug = "api",
+                IsEnabled = true,
+                CheckPeriodSeconds = 60,
+                FailureThreshold = 3,
+                RecoveryThreshold = 3,
+                ConsecutiveFailureCount = 2,
+                NextCheckUtc = now.AddMinutes(-1),
+                MonitorDefinition = new MonitorDefinition
+                {
+                    MonitorType = MonitorType.Http,
+                    Url = "https://status.example.com/health",
+                    HttpMethod = "GET",
+                    ExpectedStatusCodes = "200-299",
+                    TimeoutSeconds = 10,
+                },
+            };
+
+            seedContext.Services.Add(service);
+            await seedContext.SaveChangesAsync();
+            serviceId = service.Id;
+        }
+
+        var httpClient = new HttpClient(
+            new TestHttpMessageHandler(_ => new HttpResponseMessage(
+                HttpStatusCode.InternalServerError
+            )
+            {
+                Content = new StringContent("failed"),
+            })
+        );
+        var coordinator = new MonitoringCoordinator(
+            new TestDbContextFactory(options),
+            new MonitorProbeClient(new TestHttpClientFactory(httpClient)),
+            new TestClock(now)
+        );
+
+        await coordinator.ExecuteCheckAsync(serviceId, CancellationToken.None);
+
+        await using var verificationContext = new ApplicationDbContext(options);
+        var incidentRollup = await verificationContext.DailyServiceRollups.SingleAsync(item =>
+            item.ServiceId == serviceId && item.Day == DateOnly.FromDateTime(now)
+        );
+
+        Assert.Equal(1, incidentRollup.IncidentCount);
+    }
+
+    [Fact]
+    public async Task RefreshDerivedDataAsync_BackfillsIncidentCountIntoRecentDailyRollups()
+    {
+        var now = new DateTime(2026, 4, 2, 12, 0, 0, DateTimeKind.Utc);
+        var incidentStartedUtc = new DateTime(2026, 4, 1, 10, 0, 0, DateTimeKind.Utc);
+        var incidentResolvedUtc = new DateTime(2026, 4, 1, 11, 0, 0, DateTimeKind.Utc);
+        var incidentDay = DateOnly.FromDateTime(incidentStartedUtc);
+        var options = new DbContextOptionsBuilder<ApplicationDbContext>()
+            .UseInMemoryDatabase(Guid.NewGuid().ToString())
+            .Options;
+
+        Guid serviceId;
+        await using (var seedContext = new ApplicationDbContext(options))
+        {
+            var service = new Service
+            {
+                ServiceGroup = new ServiceGroup { Name = "Core", Slug = "core" },
+                Name = "API",
+                Slug = "api",
+                IsEnabled = true,
+                CheckPeriodSeconds = 60,
+                FailureThreshold = 3,
+                RecoveryThreshold = 3,
+                MonitorDefinition = new MonitorDefinition
+                {
+                    MonitorType = MonitorType.Http,
+                    Url = "https://status.example.com/health",
+                    HttpMethod = "GET",
+                    ExpectedStatusCodes = "200-299",
+                    TimeoutSeconds = 10,
+                },
+            };
+
+            serviceId = service.Id;
+            seedContext.Services.Add(service);
+            seedContext.Incidents.Add(
+                new Incident
+                {
+                    Source = IncidentSource.Manual,
+                    Status = IncidentStatus.Resolved,
+                    Title = "API incident",
+                    Summary = "Investigating elevated error rates.",
+                    StartedUtc = incidentStartedUtc,
+                    ResolvedUtc = incidentResolvedUtc,
+                    AffectedServices =
+                    [
+                        new IncidentAffectedService
+                        {
+                            Service = service,
+                            ImpactLevel = IncidentImpactLevel.PartialOutage,
+                            AddedUtc = incidentStartedUtc,
+                            ResolvedUtc = incidentResolvedUtc,
+                            IsResolved = true,
+                        },
+                    ],
+                }
+            );
+
+            await seedContext.SaveChangesAsync();
+        }
+
+        var coordinator = new MonitoringCoordinator(
+            new TestDbContextFactory(options),
+            new MonitorProbeClient(new TestHttpClientFactory(new HttpClient())),
+            new TestClock(now)
+        );
+
+        await coordinator.RefreshDerivedDataAsync(CancellationToken.None);
+
+        await using var verificationContext = new ApplicationDbContext(options);
+        var incidentRollup = await verificationContext.DailyServiceRollups.SingleAsync(item =>
+            item.ServiceId == serviceId && item.Day == incidentDay
+        );
+
+        Assert.Equal(1, incidentRollup.IncidentCount);
+    }
 }

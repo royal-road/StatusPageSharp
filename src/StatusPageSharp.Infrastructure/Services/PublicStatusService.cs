@@ -265,16 +265,21 @@ public sealed class PublicStatusService(ApplicationDbContext dbContext, IClock c
 
     private async Task<Dictionary<Guid, List<IncidentImpactLevel>>> GetActiveImpactsAsync(
         CancellationToken cancellationToken
-    ) =>
-        await dbContext
+    )
+    {
+        var impacts = await dbContext
             .IncidentAffectedServices.AsNoTracking()
             .Where(item => !item.IsResolved && item.Incident.Status == IncidentStatus.Open)
+            .Select(item => new { item.ServiceId, item.ImpactLevel })
+            .ToListAsync(cancellationToken);
+
+        return impacts
             .GroupBy(item => item.ServiceId)
-            .ToDictionaryAsync(
+            .ToDictionary(
                 group => group.Key,
-                group => group.Select(item => item.ImpactLevel).ToList(),
-                cancellationToken
+                group => group.Select(item => item.ImpactLevel).ToList()
             );
+    }
 
     private async Task<HashSet<Guid>> GetActiveMaintenanceServiceIdsAsync(
         DateTime now,
@@ -331,6 +336,7 @@ public sealed class PublicStatusService(ApplicationDbContext dbContext, IClock c
                 rollup.Day,
                 rollup.AvailabilityEligibleChecks,
                 rollup.AvailabilitySuccessChecks,
+                rollup.IncidentCount,
             })
             .ToListAsync(cancellationToken);
 
@@ -342,16 +348,14 @@ public sealed class PublicStatusService(ApplicationDbContext dbContext, IClock c
                     (IReadOnlyList<DailyStatusModel>)
                         group
                             .OrderBy(rollup => rollup.Day)
-                            .Select(rollup => new DailyStatusModel(
-                                rollup.Day,
-                                rollup.AvailabilityEligibleChecks == 0
-                                    || rollup.AvailabilitySuccessChecks
-                                        == rollup.AvailabilityEligibleChecks,
-                                CalculateAvailabilityPercentage(
+                            .Select(rollup =>
+                                CreateDailyStatusModel(
+                                    rollup.Day,
+                                    rollup.AvailabilityEligibleChecks,
                                     rollup.AvailabilitySuccessChecks,
-                                    rollup.AvailabilityEligibleChecks
+                                    rollup.IncidentCount
                                 )
-                            ))
+                            )
                             .ToList()
             );
     }
@@ -362,20 +366,29 @@ public sealed class PublicStatusService(ApplicationDbContext dbContext, IClock c
     )
     {
         var startDay = DateOnly.FromDateTime(clock.UtcNow.Date.AddDays(-29));
-        return await dbContext
+        var rollups = await dbContext
             .DailyServiceRollups.AsNoTracking()
             .Where(rollup => rollup.ServiceId == serviceId && rollup.Day >= startDay)
             .OrderBy(rollup => rollup.Day)
-            .Select(rollup => new DailyStatusModel(
+            .Select(rollup => new
+            {
                 rollup.Day,
-                rollup.AvailabilityEligibleChecks == 0
-                    || rollup.AvailabilitySuccessChecks == rollup.AvailabilityEligibleChecks,
-                CalculateAvailabilityPercentage(
-                    rollup.AvailabilitySuccessChecks,
-                    rollup.AvailabilityEligibleChecks
-                )
-            ))
+                rollup.AvailabilityEligibleChecks,
+                rollup.AvailabilitySuccessChecks,
+                rollup.IncidentCount,
+            })
             .ToListAsync(cancellationToken);
+
+        return rollups
+            .Select(rollup =>
+                CreateDailyStatusModel(
+                    rollup.Day,
+                    rollup.AvailabilityEligibleChecks,
+                    rollup.AvailabilitySuccessChecks,
+                    rollup.IncidentCount
+                )
+            )
+            .ToList();
     }
 
     private async Task<decimal?> GetServiceLastThirtyDayUptimeAsync(
@@ -459,4 +472,17 @@ public sealed class PublicStatusService(ApplicationDbContext dbContext, IClock c
         int successfulChecks,
         int eligibleChecks
     ) => eligibleChecks == 0 ? 100m : Math.Round(successfulChecks * 100m / eligibleChecks, 2);
+
+    private static DailyStatusModel CreateDailyStatusModel(
+        DateOnly day,
+        int eligibleChecks,
+        int successfulChecks,
+        int incidentCount
+    ) =>
+        new(
+            day,
+            eligibleChecks == 0 || successfulChecks == eligibleChecks,
+            incidentCount > 0,
+            CalculateAvailabilityPercentage(successfulChecks, eligibleChecks)
+        );
 }

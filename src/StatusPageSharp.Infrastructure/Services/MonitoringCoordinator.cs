@@ -427,6 +427,13 @@ public sealed class MonitoringCoordinator(
         {
             dbContext.DailyServiceRollups.Add(dailyRollup);
         }
+
+        await DailyIncidentCountRollupSynchronizer.SyncRecentIncidentCountsAsync(
+            dbContext,
+            serviceId,
+            now,
+            cancellationToken
+        );
     }
 
     private async Task UpdateMonthlySnapshotAsync(

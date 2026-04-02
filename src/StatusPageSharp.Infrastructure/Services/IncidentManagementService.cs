@@ -170,7 +170,11 @@ public sealed class IncidentManagementService(ApplicationDbContext dbContext, IC
             AddAffectedService(incident, service.ServiceId, service.ImpactLevel, now);
         }
 
-        await dbContext.SaveChangesAsync(cancellationToken);
+        var serviceIdsToSync = incident
+            .AffectedServices.Select(item => item.ServiceId)
+            .Concat(model.Services.Select(item => item.ServiceId))
+            .ToHashSet();
+        await SyncRecentIncidentCountsAndSaveChangesAsync(serviceIdsToSync, now, cancellationToken);
         return incident.Id;
     }
 
@@ -296,7 +300,11 @@ public sealed class IncidentManagementService(ApplicationDbContext dbContext, IC
             );
         }
 
-        await dbContext.SaveChangesAsync(cancellationToken);
+        var serviceIdsToSync = incident
+            .AffectedServices.Select(item => item.ServiceId)
+            .Concat(model.Services.Select(item => item.ServiceId))
+            .ToHashSet();
+        await SyncRecentIncidentCountsAndSaveChangesAsync(serviceIdsToSync, now, cancellationToken);
     }
 
     public async Task ResolveIncidentAsync(
@@ -331,7 +339,8 @@ public sealed class IncidentManagementService(ApplicationDbContext dbContext, IC
             false
         );
 
-        await dbContext.SaveChangesAsync(cancellationToken);
+        var serviceIdsToSync = incident.AffectedServices.Select(item => item.ServiceId).ToHashSet();
+        await SyncRecentIncidentCountsAndSaveChangesAsync(serviceIdsToSync, now, cancellationToken);
     }
 
     private void AddAffectedService(
@@ -415,4 +424,26 @@ public sealed class IncidentManagementService(ApplicationDbContext dbContext, IC
 
     private static string? NormalizeOptionalText(string? value) =>
         string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+
+    private async Task SyncRecentIncidentCountsAndSaveChangesAsync(
+        IReadOnlySet<Guid> serviceIds,
+        DateTime now,
+        CancellationToken cancellationToken
+    )
+    {
+        if (serviceIds.Count > 0)
+        {
+            foreach (var serviceId in serviceIds)
+            {
+                await DailyIncidentCountRollupSynchronizer.SyncRecentIncidentCountsAsync(
+                    dbContext,
+                    serviceId,
+                    now,
+                    cancellationToken
+                );
+            }
+        }
+
+        await dbContext.SaveChangesAsync(cancellationToken);
+    }
 }
