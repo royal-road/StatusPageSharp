@@ -1,0 +1,16 @@
+@page "/incidents"
+@model StatusPageSharp.Web.Pages.Incidents.IndexModel
+@{
+    ViewData["Title"] = "Incidents";
+}
+
+<section class="hero-section flex items-end justify-between gap-8 max-md:flex-col max-md:items-start">
+    <div>
+        <span class="inline-block font-mono text-[0.72rem] font-medium tracking-[0.14em] uppercase text-destructive/80 mb-2">Incident History</span>
+        <h1 class="text-[clamp(2rem,4vw,3.25rem)] text-foreground mb-3">Resolved Incidents</h1>
+        <p class="max-w-lg text-muted-foreground leading-relaxed text-[0.95rem]">Browse recently resolved incidents across all monitored components.</p>
+    </div>
+    <span class="status-chip">Archive</span>
+</section>
+
+<partial name="~/Pages/Shared/_IncidentHistoryList.cshtml" model="Model.IncidentHistory" />

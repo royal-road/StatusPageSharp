@@ -19,7 +19,7 @@
     <section class="obsidian-card p-6">
         <div class="flex items-baseline justify-between gap-4 mb-5">
             <h2 class="text-base font-semibold tracking-tight m-0">Active Incidents</h2>
-            <a class="text-primary text-sm font-medium hover:opacity-80 transition-opacity" asp-page="/Maintenance/Index">View Maintenance</a>
+            <a class="text-primary text-sm font-medium hover:opacity-80 transition-opacity" asp-page="/Incidents/Index">Incident History</a>
         </div>
         <div class="grid gap-3 grid-cols-[repeat(auto-fit,minmax(280px,1fr))]">
             @foreach (var incident in Model.SiteSummary.ActiveIncidents)

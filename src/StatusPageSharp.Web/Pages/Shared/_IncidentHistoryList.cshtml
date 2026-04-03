@@ -1,0 +1,64 @@
+@model StatusPageSharp.Web.Models.IncidentHistorySectionModel
+
+<section class="obsidian-card p-6" id="@Model.AnchorId">
+    <div class="flex items-baseline justify-between gap-4 mb-5 max-md:flex-col max-md:items-start">
+        <h2 class="text-base font-semibold tracking-tight m-0">@Model.Title</h2>
+        <span class="text-muted-foreground/50 text-sm font-mono">@Model.History.TotalCount incident(s)</span>
+    </div>
+    @if (Model.History.Items.Count == 0)
+    {
+        <p class="text-muted-foreground/50 text-center py-8 text-sm">@Model.EmptyMessage</p>
+    }
+    else
+    {
+        <div class="grid gap-3 grid-cols-[repeat(auto-fit,minmax(280px,1fr))]">
+            @foreach (var incident in Model.History.Items)
+            {
+                <a class="obsidian-card-elevated group p-5"
+                   asp-page="/Incidents/Details"
+                   asp-route-id="@incident.Id">
+                    <div class="flex items-start justify-between gap-4">
+                        <strong class="text-[0.9rem] font-semibold block mb-1.5 group-hover:text-primary transition-colors">@incident.Title</strong>
+                        <span class="text-muted-foreground/40 font-mono text-[0.72rem] whitespace-nowrap">Resolved</span>
+                    </div>
+                    <p class="m-0 text-muted-foreground text-[0.84rem] leading-relaxed">@incident.Summary</p>
+                    <span class="block mt-2 text-muted-foreground/50 text-[0.75rem]">@string.Join(", ", incident.AffectedServiceNames)</span>
+                    <div class="grid gap-1 mt-3 font-mono text-[0.72rem] text-muted-foreground/50">
+                        <span>Started @incident.StartedUtc.ToLocalTime().ToString("g")</span>
+                        <span>Resolved @(incident.ResolvedUtc?.ToLocalTime().ToString("g") ?? "--")</span>
+                    </div>
+                </a>
+            }
+        </div>
+        @if (Model.History.TotalPages > 1)
+        {
+            <div class="mt-5 flex items-center justify-between gap-3 max-md:flex-col max-md:items-stretch">
+                <span class="text-muted-foreground/50 text-sm font-mono">Page @Model.History.PageNumber of @Model.History.TotalPages</span>
+                <div class="flex items-center gap-2 max-md:w-full max-md:justify-between">
+                    @if (Model.HasPreviousPage)
+                    {
+                        <a class="inline-flex items-center justify-center rounded-md border border-border bg-background px-4 py-2 text-[0.82rem] font-semibold text-foreground hover:bg-secondary/50 transition-colors"
+                           asp-page="@Model.PageName"
+                           asp-all-route-data="@Model.PreviousPageRouteValues"
+                           asp-fragment="@Model.AnchorId">Previous</a>
+                    }
+                    else
+                    {
+                        <span class="inline-flex items-center justify-center rounded-md border border-border/60 bg-background px-4 py-2 text-[0.82rem] font-semibold text-muted-foreground/40">Previous</span>
+                    }
+                    @if (Model.HasNextPage)
+                    {
+                        <a class="inline-flex items-center justify-center rounded-md bg-primary text-primary-foreground px-4 py-2 text-[0.82rem] font-semibold hover:opacity-90 transition-all hover:-translate-y-px shadow-sm"
+                           asp-page="@Model.PageName"
+                           asp-all-route-data="@Model.NextPageRouteValues"
+                           asp-fragment="@Model.AnchorId">Next</a>
+                    }
+                    else
+                    {
+                        <span class="inline-flex items-center justify-center rounded-md bg-primary/20 px-4 py-2 text-[0.82rem] font-semibold text-primary/40">Next</span>
+                    }
+                </div>
+            </div>
+        }
+    }
+</section>

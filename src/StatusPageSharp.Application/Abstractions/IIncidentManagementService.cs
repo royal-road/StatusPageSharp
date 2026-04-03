@@ -9,6 +9,13 @@ public interface IIncidentManagementService
         CancellationToken cancellationToken
     );
 
+    Task<PublicIncidentHistoryPageModel> GetIncidentHistoryPageAsync(
+        Guid? serviceId,
+        int pageNumber,
+        int pageSize,
+        CancellationToken cancellationToken
+    );
+
     Task<PublicIncidentDetailsModel?> GetIncidentAsync(
         Guid id,
         CancellationToken cancellationToken

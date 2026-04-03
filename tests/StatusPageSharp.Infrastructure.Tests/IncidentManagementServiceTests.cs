@@ -703,6 +703,279 @@ public class IncidentManagementServiceTests
         );
     }
 
+    [Fact]
+    public async Task GetIncidentHistoryPageAsync_ReturnsOnlyResolvedIncidentsOrderedByResolvedUtc()
+    {
+        var now = new DateTime(2026, 4, 3, 12, 0, 0, DateTimeKind.Utc);
+        var options = CreateOptions();
+
+        await using (var seedContext = new ApplicationDbContext(options))
+        {
+            var service = CreateService("API", "api");
+            seedContext.Services.Add(service);
+            seedContext.Incidents.AddRange(
+                new Incident
+                {
+                    Source = IncidentSource.Manual,
+                    Status = IncidentStatus.Open,
+                    Title = "Open API incident",
+                    Summary = "Still investigating.",
+                    StartedUtc = now.AddHours(-1),
+                    AffectedServices =
+                    [
+                        new IncidentAffectedService
+                        {
+                            Service = service,
+                            ImpactLevel = IncidentImpactLevel.PartialOutage,
+                            AddedUtc = now.AddHours(-1),
+                        },
+                    ],
+                },
+                new Incident
+                {
+                    Source = IncidentSource.Manual,
+                    Status = IncidentStatus.Resolved,
+                    Title = "Older API incident",
+                    Summary = "Recovered after restart.",
+                    StartedUtc = now.AddDays(-4),
+                    ResolvedUtc = now.AddDays(-3),
+                    AffectedServices =
+                    [
+                        new IncidentAffectedService
+                        {
+                            Service = service,
+                            ImpactLevel = IncidentImpactLevel.PartialOutage,
+                            AddedUtc = now.AddDays(-4),
+                            ResolvedUtc = now.AddDays(-3),
+                            IsResolved = true,
+                        },
+                    ],
+                },
+                new Incident
+                {
+                    Source = IncidentSource.Manual,
+                    Status = IncidentStatus.Resolved,
+                    Title = "Newest API incident",
+                    Summary = "Recovered after config rollback.",
+                    StartedUtc = now.AddDays(-2),
+                    ResolvedUtc = now.AddDays(-1),
+                    AffectedServices =
+                    [
+                        new IncidentAffectedService
+                        {
+                            Service = service,
+                            ImpactLevel = IncidentImpactLevel.MajorOutage,
+                            AddedUtc = now.AddDays(-2),
+                            ResolvedUtc = now.AddDays(-1),
+                            IsResolved = true,
+                        },
+                    ],
+                }
+            );
+
+            await seedContext.SaveChangesAsync();
+        }
+
+        await using var queryContext = new ApplicationDbContext(options);
+        var serviceUnderTest = new IncidentManagementService(
+            queryContext,
+            new TestTimeProvider(now)
+        );
+
+        var history = await serviceUnderTest.GetIncidentHistoryPageAsync(
+            null,
+            1,
+            10,
+            CancellationToken.None
+        );
+
+        Assert.Equal(2, history.TotalCount);
+        Assert.Equal(1, history.PageNumber);
+        Assert.Equal(1, history.TotalPages);
+        Assert.Equal(
+            ["Newest API incident", "Older API incident"],
+            history.Items.Select(item => item.Title)
+        );
+        Assert.All(history.Items, item => Assert.Equal(IncidentStatus.Resolved, item.Status));
+    }
+
+    [Fact]
+    public async Task GetIncidentHistoryPageAsync_FiltersByServiceAndIncludesSharedIncidents()
+    {
+        var now = new DateTime(2026, 4, 3, 12, 0, 0, DateTimeKind.Utc);
+        var options = CreateOptions();
+        Guid apiServiceId;
+
+        await using (var seedContext = new ApplicationDbContext(options))
+        {
+            var apiService = CreateService("API", "api");
+            var workerService = CreateService("Worker", "worker");
+            apiServiceId = apiService.Id;
+            seedContext.Services.AddRange(apiService, workerService);
+            seedContext.Incidents.AddRange(
+                new Incident
+                {
+                    Source = IncidentSource.Manual,
+                    Status = IncidentStatus.Resolved,
+                    Title = "Shared dependency incident",
+                    Summary = "Both services were degraded.",
+                    StartedUtc = now.AddDays(-4),
+                    ResolvedUtc = now.AddDays(-3),
+                    AffectedServices =
+                    [
+                        new IncidentAffectedService
+                        {
+                            Service = apiService,
+                            ImpactLevel = IncidentImpactLevel.PartialOutage,
+                            AddedUtc = now.AddDays(-4),
+                            ResolvedUtc = now.AddDays(-3),
+                            IsResolved = true,
+                        },
+                        new IncidentAffectedService
+                        {
+                            Service = workerService,
+                            ImpactLevel = IncidentImpactLevel.PartialOutage,
+                            AddedUtc = now.AddDays(-4),
+                            ResolvedUtc = now.AddDays(-3),
+                            IsResolved = true,
+                        },
+                    ],
+                },
+                new Incident
+                {
+                    Source = IncidentSource.Manual,
+                    Status = IncidentStatus.Resolved,
+                    Title = "API-only incident",
+                    Summary = "Only API was affected.",
+                    StartedUtc = now.AddDays(-6),
+                    ResolvedUtc = now.AddDays(-5),
+                    AffectedServices =
+                    [
+                        new IncidentAffectedService
+                        {
+                            Service = apiService,
+                            ImpactLevel = IncidentImpactLevel.MajorOutage,
+                            AddedUtc = now.AddDays(-6),
+                            ResolvedUtc = now.AddDays(-5),
+                            IsResolved = true,
+                        },
+                    ],
+                },
+                new Incident
+                {
+                    Source = IncidentSource.Manual,
+                    Status = IncidentStatus.Resolved,
+                    Title = "Worker-only incident",
+                    Summary = "Only Worker was affected.",
+                    StartedUtc = now.AddDays(-8),
+                    ResolvedUtc = now.AddDays(-7),
+                    AffectedServices =
+                    [
+                        new IncidentAffectedService
+                        {
+                            Service = workerService,
+                            ImpactLevel = IncidentImpactLevel.MajorOutage,
+                            AddedUtc = now.AddDays(-8),
+                            ResolvedUtc = now.AddDays(-7),
+                            IsResolved = true,
+                        },
+                    ],
+                }
+            );
+
+            await seedContext.SaveChangesAsync();
+        }
+
+        await using var queryContext = new ApplicationDbContext(options);
+        var serviceUnderTest = new IncidentManagementService(
+            queryContext,
+            new TestTimeProvider(now)
+        );
+
+        var history = await serviceUnderTest.GetIncidentHistoryPageAsync(
+            apiServiceId,
+            1,
+            10,
+            CancellationToken.None
+        );
+
+        Assert.Equal(2, history.TotalCount);
+        Assert.Equal(
+            ["Shared dependency incident", "API-only incident"],
+            history.Items.Select(item => item.Title)
+        );
+        Assert.Equal(["API", "Worker"], history.Items[0].AffectedServiceNames);
+    }
+
+    [Fact]
+    public async Task GetIncidentHistoryPageAsync_ClampsRequestedPageIntoAvailableRange()
+    {
+        var now = new DateTime(2026, 4, 3, 12, 0, 0, DateTimeKind.Utc);
+        var options = CreateOptions();
+
+        await using (var seedContext = new ApplicationDbContext(options))
+        {
+            var service = CreateService("API", "api");
+            seedContext.Services.Add(service);
+
+            for (var index = 0; index < 3; index++)
+            {
+                var startedUtc = now.AddDays(-(index + 4));
+                var resolvedUtc = now.AddDays(-(index + 3));
+                seedContext.Incidents.Add(
+                    new Incident
+                    {
+                        Source = IncidentSource.Manual,
+                        Status = IncidentStatus.Resolved,
+                        Title = $"Incident {index + 1}",
+                        Summary = $"Resolved incident {index + 1}.",
+                        StartedUtc = startedUtc,
+                        ResolvedUtc = resolvedUtc,
+                        AffectedServices =
+                        [
+                            new IncidentAffectedService
+                            {
+                                Service = service,
+                                ImpactLevel = IncidentImpactLevel.PartialOutage,
+                                AddedUtc = startedUtc,
+                                ResolvedUtc = resolvedUtc,
+                                IsResolved = true,
+                            },
+                        ],
+                    }
+                );
+            }
+
+            await seedContext.SaveChangesAsync();
+        }
+
+        await using var queryContext = new ApplicationDbContext(options);
+        var serviceUnderTest = new IncidentManagementService(
+            queryContext,
+            new TestTimeProvider(now)
+        );
+
+        var firstPage = await serviceUnderTest.GetIncidentHistoryPageAsync(
+            null,
+            0,
+            2,
+            CancellationToken.None
+        );
+        var lastPage = await serviceUnderTest.GetIncidentHistoryPageAsync(
+            null,
+            99,
+            2,
+            CancellationToken.None
+        );
+
+        Assert.Equal(1, firstPage.PageNumber);
+        Assert.Equal(2, firstPage.TotalPages);
+        Assert.Equal(["Incident 1", "Incident 2"], firstPage.Items.Select(item => item.Title));
+        Assert.Equal(2, lastPage.PageNumber);
+        Assert.Single(lastPage.Items);
+        Assert.Equal("Incident 3", lastPage.Items[0].Title);
+    }
+
     private static DbContextOptions<ApplicationDbContext> CreateOptions() =>
         new DbContextOptionsBuilder<ApplicationDbContext>()
             .UseInMemoryDatabase(Guid.NewGuid().ToString())

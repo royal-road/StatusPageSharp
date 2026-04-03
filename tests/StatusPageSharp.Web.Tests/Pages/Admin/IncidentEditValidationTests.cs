@@ -256,6 +256,13 @@ public class IncidentEditValidationTests
             CancellationToken cancellationToken
         ) => throw new NotSupportedException();
 
+        public Task<PublicIncidentHistoryPageModel> GetIncidentHistoryPageAsync(
+            Guid? serviceId,
+            int pageNumber,
+            int pageSize,
+            CancellationToken cancellationToken
+        ) => throw new NotSupportedException();
+
         public Task ResolveIncidentAsync(
             Guid id,
             string? postmortem,

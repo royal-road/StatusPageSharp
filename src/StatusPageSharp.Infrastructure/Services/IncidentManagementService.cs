@@ -24,21 +24,51 @@ public sealed class IncidentManagementService(
             .OrderByDescending(incident => incident.StartedUtc)
             .ToListAsync(cancellationToken);
 
-        return incidents
-            .Select(incident => new PublicIncidentSummaryModel(
-                incident.Id,
-                incident.Title,
-                incident.Summary,
-                incident.Status,
-                incident.StartedUtc,
-                incident.ResolvedUtc,
-                incident
-                    .AffectedServices.Select(item => item.Service.Name)
-                    .Distinct()
-                    .OrderBy(name => name)
-                    .ToList()
-            ))
-            .ToList();
+        return incidents.Select(MapPublicIncidentSummary).ToList();
+    }
+
+    public async Task<PublicIncidentHistoryPageModel> GetIncidentHistoryPageAsync(
+        Guid? serviceId,
+        int pageNumber,
+        int pageSize,
+        CancellationToken cancellationToken
+    )
+    {
+        var normalizedPageSize = Math.Max(1, pageSize);
+        var normalizedRequestedPageNumber = Math.Max(1, pageNumber);
+        var historyQuery = dbContext
+            .Incidents.AsNoTracking()
+            .Include(incident => incident.AffectedServices)
+                .ThenInclude(item => item.Service)
+            .Where(incident => incident.Status == IncidentStatus.Resolved);
+
+        if (serviceId is Guid resolvedServiceId)
+        {
+            historyQuery = historyQuery.Where(incident =>
+                incident.AffectedServices.Any(item => item.ServiceId == resolvedServiceId)
+            );
+        }
+
+        var totalCount = await historyQuery.CountAsync(cancellationToken);
+        var totalPages =
+            totalCount == 0 ? 1 : (int)Math.Ceiling(totalCount / (double)normalizedPageSize);
+        var normalizedPageNumber = Math.Min(normalizedRequestedPageNumber, totalPages);
+        var skip = (normalizedPageNumber - 1) * normalizedPageSize;
+
+        var incidents = await historyQuery
+            .OrderByDescending(incident => incident.ResolvedUtc)
+            .ThenByDescending(incident => incident.StartedUtc)
+            .Skip(skip)
+            .Take(normalizedPageSize)
+            .ToListAsync(cancellationToken);
+
+        return new PublicIncidentHistoryPageModel(
+            incidents.Select(MapPublicIncidentSummary).ToList(),
+            normalizedPageNumber,
+            normalizedPageSize,
+            totalCount,
+            totalPages
+        );
     }
 
     public async Task<PublicIncidentDetailsModel?> GetIncidentAsync(
@@ -645,6 +675,23 @@ public sealed class IncidentManagementService(
                     item.CreatedUtc,
                     item.CreatedByUserId
                 ))
+                .ToList()
+        );
+    }
+
+    private static PublicIncidentSummaryModel MapPublicIncidentSummary(Incident incident)
+    {
+        return new PublicIncidentSummaryModel(
+            incident.Id,
+            incident.Title,
+            incident.Summary,
+            incident.Status,
+            incident.StartedUtc,
+            incident.ResolvedUtc,
+            incident
+                .AffectedServices.Select(item => item.Service.Name)
+                .Distinct()
+                .OrderBy(name => name)
                 .ToList()
         );
     }

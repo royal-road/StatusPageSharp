@@ -49,6 +49,13 @@ public static class SocialMetadataBuilder
         return $"{incident.Summary} {affectedServices} affected {Pluralize("service", affectedServices)}. {resolution}";
     }
 
+    public static string BuildIncidentHistoryDescription(PublicIncidentHistoryPageModel history)
+    {
+        return history.TotalCount == 0
+            ? "No resolved incidents have been published yet."
+            : $"{history.TotalCount} resolved {Pluralize("incident", history.TotalCount)} across monitored services.";
+    }
+
     public static string BuildMaintenanceDescription(
         IReadOnlyList<PublicMaintenanceSummaryModel> maintenanceItems
     )
