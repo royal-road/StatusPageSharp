@@ -15,6 +15,9 @@
     var description = ViewData["Description"] as string
         ?? $"{siteSettings.SiteTitle} live uptime, incidents, and scheduled maintenance.";
     var currentUrl = Context.Request.GetDisplayUrl();
+    var faviconUrl = string.IsNullOrWhiteSpace(siteSettings.LogoUrl)
+        ? Url.Content("~/favicon.ico")
+        : siteSettings.LogoUrl;
     var socialImageVersion = SocialStatusCardRenderer.BuildVersionToken(statusCardSummary);
     var socialImageUrl = UriHelper.BuildAbsolute(
         Context.Request.Scheme,
@@ -46,6 +49,8 @@
     <meta name="twitter:description" content="@description" />
     <meta name="twitter:image" content="@socialImageUrl" />
     <title>@fullTitle</title>
+    <link rel="icon" href="@faviconUrl" />
+    <link rel="apple-touch-icon" href="@faviconUrl" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
