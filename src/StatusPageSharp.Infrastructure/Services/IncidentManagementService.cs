@@ -172,11 +172,100 @@ public sealed class IncidentManagementService(
             AddAffectedService(incident, service.ServiceId, service.ImpactLevel, now);
         }
 
-        var serviceIdsToSync = incident
-            .AffectedServices.Select(item => item.ServiceId)
-            .Concat(model.Services.Select(item => item.ServiceId))
-            .ToHashSet();
-        await SyncRecentIncidentCountsAndSaveChangesAsync(serviceIdsToSync, now, cancellationToken);
+        var serviceIdsToSync = model.Services.Select(item => item.ServiceId).ToHashSet();
+        await SyncIncidentCountsAndSaveChangesAsync(
+            CreateAffectedServiceSyncRanges(incident, serviceIdsToSync, DateOnly.FromDateTime(now)),
+            now,
+            cancellationToken
+        );
+        return incident.Id;
+    }
+
+    public async Task<Guid> CreateHistoricalIncidentAsync(
+        HistoricalIncidentCreateModel model,
+        string? userId,
+        CancellationToken cancellationToken
+    )
+    {
+        if (model.Services.Count == 0)
+        {
+            throw new InvalidOperationException("At least one affected service is required.");
+        }
+
+        var now = timeProvider.GetUtcNow().UtcDateTime;
+        var startedUtc = NormalizeUtcInput(
+            model.StartedUtc,
+            "The incident start time is required."
+        );
+        DateTime? resolvedUtc = model.ResolvedUtc is null
+            ? null
+            : NormalizeUtcInput(model.ResolvedUtc.Value, "The incident resolved time is invalid.");
+        var postmortem = NormalizeOptionalText(model.Postmortem);
+
+        ValidateHistoricalIncidentWindow(startedUtc, resolvedUtc, now);
+        EnsureHistoricalPostmortemIsAllowed(resolvedUtc, postmortem);
+        if (resolvedUtc is null)
+        {
+            await EnsureNoOpenIncidentExistsAsync(cancellationToken);
+        }
+
+        var incident = new Incident
+        {
+            Source = IncidentSource.Manual,
+            Status = resolvedUtc is null ? IncidentStatus.Open : IncidentStatus.Resolved,
+            Title = model.Title.Trim(),
+            Summary = model.Summary.Trim(),
+            StartedUtc = startedUtc,
+            ResolvedUtc = resolvedUtc,
+            Postmortem = postmortem,
+            CreatedByUserId = userId,
+        };
+
+        dbContext.Incidents.Add(incident);
+        AddIncidentEvent(
+            incident,
+            IncidentEventType.Created,
+            incident.Title,
+            NormalizeOptionalText(model.InitialEventBody) ?? incident.Summary,
+            startedUtc,
+            userId,
+            false
+        );
+
+        foreach (var service in model.Services)
+        {
+            AddAffectedService(
+                incident,
+                service.ServiceId,
+                service.ImpactLevel,
+                startedUtc,
+                resolvedUtc
+            );
+        }
+
+        if (resolvedUtc is not null)
+        {
+            AddIncidentEvent(
+                incident,
+                IncidentEventType.Resolved,
+                "Incident resolved.",
+                incident.Postmortem,
+                resolvedUtc.Value,
+                userId,
+                false
+            );
+        }
+
+        var endDay = DateOnly.FromDateTime((resolvedUtc ?? now).Date);
+        await SyncIncidentCountsAndSaveChangesAsync(
+            CreateServiceSyncRanges(
+                model.Services.Select(item => item.ServiceId).ToHashSet(),
+                DateOnly.FromDateTime(startedUtc.Date),
+                endDay
+            ),
+            now,
+            cancellationToken
+        );
         return incident.Id;
     }
 
@@ -191,6 +280,7 @@ public sealed class IncidentManagementService(
             item => item.Id == id,
             cancellationToken
         );
+        EnsureIncidentCanBeModified(incident);
         AddIncidentEvent(
             incident,
             IncidentEventType.Update,
@@ -217,6 +307,7 @@ public sealed class IncidentManagementService(
                 .ThenInclude(item => item.Service)
             .Include(item => item.Events)
             .SingleAsync(item => item.Id == id, cancellationToken);
+        EnsureIncidentCanBeModified(incident);
 
         var desiredServices = model.Services.ToDictionary(
             item => item.ServiceId,
@@ -306,7 +397,11 @@ public sealed class IncidentManagementService(
             .AffectedServices.Select(item => item.ServiceId)
             .Concat(model.Services.Select(item => item.ServiceId))
             .ToHashSet();
-        await SyncRecentIncidentCountsAndSaveChangesAsync(serviceIdsToSync, now, cancellationToken);
+        await SyncIncidentCountsAndSaveChangesAsync(
+            CreateAffectedServiceSyncRanges(incident, serviceIdsToSync, DateOnly.FromDateTime(now)),
+            now,
+            cancellationToken
+        );
     }
 
     public async Task ResolveIncidentAsync(
@@ -321,6 +416,7 @@ public sealed class IncidentManagementService(
             .Incidents.Include(item => item.AffectedServices)
             .Include(item => item.Events)
             .SingleAsync(item => item.Id == id, cancellationToken);
+        EnsureIncidentCanBeModified(incident);
 
         foreach (var affectedService in incident.AffectedServices.Where(item => !item.IsResolved))
         {
@@ -342,14 +438,67 @@ public sealed class IncidentManagementService(
         );
 
         var serviceIdsToSync = incident.AffectedServices.Select(item => item.ServiceId).ToHashSet();
-        await SyncRecentIncidentCountsAndSaveChangesAsync(serviceIdsToSync, now, cancellationToken);
+        await SyncIncidentCountsAndSaveChangesAsync(
+            CreateAffectedServiceSyncRanges(incident, serviceIdsToSync, DateOnly.FromDateTime(now)),
+            now,
+            cancellationToken
+        );
+    }
+
+    public async Task UpdatePostmortemAsync(
+        Guid id,
+        string? postmortem,
+        string? userId,
+        CancellationToken cancellationToken
+    )
+    {
+        var incident = await dbContext
+            .Incidents.Include(item => item.Events)
+            .SingleAsync(item => item.Id == id, cancellationToken);
+
+        if (incident.Status != IncidentStatus.Resolved)
+        {
+            throw new InvalidOperationException(
+                "Only resolved incidents can update the postmortem."
+            );
+        }
+
+        var previousPostmortem = incident.Postmortem;
+        incident.Postmortem = NormalizeOptionalText(postmortem);
+        var resolvedEvent = incident
+            .Events.Where(item => item.EventType == IncidentEventType.Resolved)
+            .OrderByDescending(item => item.CreatedUtc)
+            .FirstOrDefault();
+        if (resolvedEvent is not null)
+        {
+            resolvedEvent.Body = incident.Postmortem;
+        }
+
+        if (
+            incident.Postmortem is not null
+            && !string.Equals(previousPostmortem, incident.Postmortem, StringComparison.Ordinal)
+        )
+        {
+            AddIncidentEvent(
+                incident,
+                IncidentEventType.PostmortemPublished,
+                "Postmortem updated.",
+                null,
+                timeProvider.GetUtcNow().UtcDateTime,
+                userId,
+                false
+            );
+        }
+
+        await dbContext.SaveChangesAsync(cancellationToken);
     }
 
     private void AddAffectedService(
         Incident incident,
         Guid serviceId,
         IncidentImpactLevel impactLevel,
-        DateTime addedUtc
+        DateTime addedUtc,
+        DateTime? resolvedUtc = null
     )
     {
         dbContext.IncidentAffectedServices.Add(
@@ -359,6 +508,8 @@ public sealed class IncidentManagementService(
                 ServiceId = serviceId,
                 ImpactLevel = impactLevel,
                 AddedUtc = addedUtc,
+                IsResolved = resolvedUtc is not null,
+                ResolvedUtc = resolvedUtc,
             }
         );
     }
@@ -427,20 +578,146 @@ public sealed class IncidentManagementService(
     private static string? NormalizeOptionalText(string? value) =>
         string.IsNullOrWhiteSpace(value) ? null : value.Trim();
 
-    private async Task SyncRecentIncidentCountsAndSaveChangesAsync(
+    private static DateTime NormalizeUtcInput(DateTime value, string missingMessage)
+    {
+        if (value == default)
+        {
+            throw new InvalidOperationException(missingMessage);
+        }
+
+        return value.Kind switch
+        {
+            DateTimeKind.Utc => value,
+            DateTimeKind.Local => value.ToUniversalTime(),
+            _ => DateTime.SpecifyKind(value, DateTimeKind.Utc),
+        };
+    }
+
+    private async Task EnsureNoOpenIncidentExistsAsync(CancellationToken cancellationToken)
+    {
+        var hasOpenIncident = await dbContext.Incidents.AnyAsync(
+            item => item.Status == IncidentStatus.Open,
+            cancellationToken
+        );
+        if (hasOpenIncident)
+        {
+            throw new InvalidOperationException(
+                "A historical incident can only remain open when no other incident is currently open."
+            );
+        }
+    }
+
+    private static void EnsureIncidentCanBeModified(Incident incident)
+    {
+        if (incident.Status == IncidentStatus.Resolved)
+        {
+            throw new InvalidOperationException(
+                "Resolved incidents can only update the postmortem."
+            );
+        }
+    }
+
+    private static void ValidateHistoricalIncidentWindow(
+        DateTime startedUtc,
+        DateTime? resolvedUtc,
+        DateTime now
+    )
+    {
+        if (startedUtc > now)
+        {
+            throw new InvalidOperationException("The incident start time cannot be in the future.");
+        }
+
+        if (resolvedUtc is null)
+        {
+            return;
+        }
+
+        if (resolvedUtc < startedUtc)
+        {
+            throw new InvalidOperationException(
+                "The resolved time must be at or after the incident start time."
+            );
+        }
+
+        if (resolvedUtc > now)
+        {
+            throw new InvalidOperationException("The resolved time cannot be in the future.");
+        }
+    }
+
+    private static void EnsureHistoricalPostmortemIsAllowed(
+        DateTime? resolvedUtc,
+        string? postmortem
+    )
+    {
+        if (resolvedUtc is null && postmortem is not null)
+        {
+            throw new InvalidOperationException(
+                "A postmortem can only be provided for a resolved incident."
+            );
+        }
+    }
+
+    private static IReadOnlyDictionary<
+        Guid,
+        (DateOnly StartDay, DateOnly EndDay)
+    > CreateServiceSyncRanges(IReadOnlySet<Guid> serviceIds, DateOnly day) =>
+        CreateServiceSyncRanges(serviceIds, day, day);
+
+    private static IReadOnlyDictionary<
+        Guid,
+        (DateOnly StartDay, DateOnly EndDay)
+    > CreateServiceSyncRanges(IReadOnlySet<Guid> serviceIds, DateOnly startDay, DateOnly endDay)
+    {
+        Dictionary<Guid, (DateOnly StartDay, DateOnly EndDay)> ranges = [];
+        foreach (var serviceId in serviceIds)
+        {
+            ranges[serviceId] = (startDay, endDay);
+        }
+
+        return ranges;
+    }
+
+    private static IReadOnlyDictionary<
+        Guid,
+        (DateOnly StartDay, DateOnly EndDay)
+    > CreateAffectedServiceSyncRanges(
+        Incident incident,
         IReadOnlySet<Guid> serviceIds,
-        DateTime now,
+        DateOnly endDay
+    )
+    {
+        Dictionary<Guid, (DateOnly StartDay, DateOnly EndDay)> ranges = [];
+        foreach (var serviceId in serviceIds)
+        {
+            var startDay = incident
+                .AffectedServices.Where(item => item.ServiceId == serviceId)
+                .Select(item => DateOnly.FromDateTime(item.AddedUtc))
+                .DefaultIfEmpty(endDay)
+                .Min();
+            ranges[serviceId] = (startDay, endDay);
+        }
+
+        return ranges;
+    }
+
+    private async Task SyncIncidentCountsAndSaveChangesAsync(
+        IReadOnlyDictionary<Guid, (DateOnly StartDay, DateOnly EndDay)> serviceSyncRanges,
+        DateTime unresolvedWindowEndUtc,
         CancellationToken cancellationToken
     )
     {
-        if (serviceIds.Count > 0)
+        if (serviceSyncRanges.Count > 0)
         {
-            foreach (var serviceId in serviceIds)
+            foreach (var serviceSyncRange in serviceSyncRanges)
             {
-                await DailyIncidentCountRollupSynchronizer.SyncRecentIncidentCountsAsync(
+                await DailyIncidentCountRollupSynchronizer.SyncIncidentCountsAsync(
                     dbContext,
-                    serviceId,
-                    now,
+                    serviceSyncRange.Key,
+                    serviceSyncRange.Value.StartDay,
+                    serviceSyncRange.Value.EndDay,
+                    unresolvedWindowEndUtc,
                     cancellationToken
                 );
             }

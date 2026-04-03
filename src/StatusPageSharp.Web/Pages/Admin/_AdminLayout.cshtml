@@ -1,0 +1,10 @@
+@{
+    Layout = "/Pages/Shared/_Layout.cshtml";
+}
+
+@RenderBody()
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    @await RenderSectionAsync("Scripts", required: false)
+}

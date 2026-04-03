@@ -10,6 +10,7 @@
     </div>
     <form method="post" class="grid gap-4">
         <input asp-for="Input.TimeZoneOffsetMinutes" type="hidden" id="maintenance-timezone-offset" />
+        <div asp-validation-summary="All" class="text-destructive text-sm" role="alert"></div>
         <div class="grid grid-cols-2 gap-4 max-md:grid-cols-1">
             <div class="grid gap-1.5">
                 <label class="text-[0.78rem] font-semibold text-muted-foreground tracking-wide uppercase" asp-for="Input.Title">Title</label>

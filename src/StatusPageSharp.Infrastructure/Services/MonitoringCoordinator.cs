@@ -428,9 +428,11 @@ public sealed class MonitoringCoordinator(
             dbContext.DailyServiceRollups.Add(dailyRollup);
         }
 
-        await DailyIncidentCountRollupSynchronizer.SyncRecentIncidentCountsAsync(
+        await DailyIncidentCountRollupSynchronizer.SyncIncidentCountsAsync(
             dbContext,
             serviceId,
+            day.AddDays(-29),
+            day,
             now,
             cancellationToken
         );

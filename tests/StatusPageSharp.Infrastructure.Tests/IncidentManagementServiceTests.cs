@@ -125,6 +125,270 @@ public class IncidentManagementServiceTests
         Assert.All(incidentRollups, item => Assert.Equal(1, item.IncidentCount));
     }
 
+    [Fact]
+    public async Task CreateHistoricalIncidentAsync_UsesProvidedUtcTimestamps()
+    {
+        var now = new DateTime(2026, 4, 3, 12, 0, 0, DateTimeKind.Utc);
+        var options = CreateOptions();
+        Guid serviceId;
+
+        await using (var seedContext = new ApplicationDbContext(options))
+        {
+            var service = CreateService("API", "api");
+            serviceId = service.Id;
+            seedContext.Services.Add(service);
+            await seedContext.SaveChangesAsync();
+        }
+
+        await using (var actionContext = new ApplicationDbContext(options))
+        {
+            var serviceUnderTest = new IncidentManagementService(
+                actionContext,
+                new TestTimeProvider(now)
+            );
+
+            await serviceUnderTest.CreateHistoricalIncidentAsync(
+                new HistoricalIncidentCreateModel
+                {
+                    Title = "Historical API incident",
+                    Summary = "Recovered after investigation.",
+                    StartedUtc = new DateTime(2026, 1, 10, 13, 0, 0, DateTimeKind.Utc),
+                    ResolvedUtc = new DateTime(2026, 3, 10, 12, 0, 0, DateTimeKind.Utc),
+                    Services =
+                    [
+                        new IncidentAffectedServiceInputModel
+                        {
+                            ServiceId = serviceId,
+                            ImpactLevel = IncidentImpactLevel.PartialOutage,
+                        },
+                    ],
+                },
+                null,
+                CancellationToken.None
+            );
+        }
+
+        await using var verificationContext = new ApplicationDbContext(options);
+        var incident = await verificationContext
+            .Incidents.Include(item => item.AffectedServices)
+            .Include(item => item.Events)
+            .SingleAsync();
+
+        Assert.Equal(new DateTime(2026, 1, 10, 13, 0, 0, DateTimeKind.Utc), incident.StartedUtc);
+        Assert.Equal(new DateTime(2026, 3, 10, 12, 0, 0, DateTimeKind.Utc), incident.ResolvedUtc);
+
+        var affectedService = Assert.Single(incident.AffectedServices);
+        Assert.Equal(incident.StartedUtc, affectedService.AddedUtc);
+        Assert.Equal(incident.ResolvedUtc, affectedService.ResolvedUtc);
+
+        var resolvedEvent = Assert.Single(
+            incident.Events,
+            item => item.EventType == IncidentEventType.Resolved
+        );
+        Assert.Equal(incident.ResolvedUtc, resolvedEvent.CreatedUtc);
+    }
+
+    [Fact]
+    public async Task CreateHistoricalIncidentAsync_Throws_WhenOpenIncidentIncludesPostmortem()
+    {
+        var now = new DateTime(2026, 4, 3, 12, 0, 0, DateTimeKind.Utc);
+        var options = CreateOptions();
+        Guid serviceId;
+
+        await using (var seedContext = new ApplicationDbContext(options))
+        {
+            var service = CreateService("API", "api");
+            serviceId = service.Id;
+            seedContext.Services.Add(service);
+            await seedContext.SaveChangesAsync();
+        }
+
+        await using (var actionContext = new ApplicationDbContext(options))
+        {
+            var serviceUnderTest = new IncidentManagementService(
+                actionContext,
+                new TestTimeProvider(now)
+            );
+
+            var exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+                serviceUnderTest.CreateHistoricalIncidentAsync(
+                    new HistoricalIncidentCreateModel
+                    {
+                        Title = "Historical API incident",
+                        Summary = "Recovered after investigation.",
+                        StartedUtc = new DateTime(2026, 1, 10, 13, 0, 0, DateTimeKind.Utc),
+                        Postmortem = "Final write-up",
+                        Services =
+                        [
+                            new IncidentAffectedServiceInputModel
+                            {
+                                ServiceId = serviceId,
+                                ImpactLevel = IncidentImpactLevel.PartialOutage,
+                            },
+                        ],
+                    },
+                    null,
+                    CancellationToken.None
+                )
+            );
+
+            Assert.Equal(
+                "A postmortem can only be provided for a resolved incident.",
+                exception.Message
+            );
+        }
+    }
+
+    [Fact]
+    public async Task UpdatePostmortemAsync_SynchronizesResolvedEventBody()
+    {
+        var now = new DateTime(2026, 4, 3, 12, 0, 0, DateTimeKind.Utc);
+        var options = CreateOptions();
+        Guid incidentId;
+
+        await using (var seedContext = new ApplicationDbContext(options))
+        {
+            var seedIncident = new Incident
+            {
+                Source = IncidentSource.Manual,
+                Status = IncidentStatus.Resolved,
+                Title = "Resolved API incident",
+                Summary = "Recovered",
+                StartedUtc = now.AddHours(-2),
+                ResolvedUtc = now.AddHours(-1),
+                Postmortem = "Initial postmortem",
+                Events =
+                [
+                    new IncidentEvent
+                    {
+                        EventType = IncidentEventType.Created,
+                        Message = "Incident opened",
+                        CreatedUtc = now.AddHours(-2),
+                    },
+                    new IncidentEvent
+                    {
+                        EventType = IncidentEventType.Resolved,
+                        Message = "Incident resolved.",
+                        Body = "Initial postmortem",
+                        CreatedUtc = now.AddHours(-1),
+                    },
+                ],
+            };
+
+            seedContext.Incidents.Add(seedIncident);
+            await seedContext.SaveChangesAsync();
+            incidentId = seedIncident.Id;
+        }
+
+        await using (var actionContext = new ApplicationDbContext(options))
+        {
+            var serviceUnderTest = new IncidentManagementService(
+                actionContext,
+                new TestTimeProvider(now)
+            );
+
+            await serviceUnderTest.UpdatePostmortemAsync(
+                incidentId,
+                "Updated postmortem",
+                null,
+                CancellationToken.None
+            );
+        }
+
+        await using var verificationContext = new ApplicationDbContext(options);
+        var incident = await verificationContext
+            .Incidents.Include(item => item.Events)
+            .SingleAsync(item => item.Id == incidentId);
+
+        Assert.Equal("Updated postmortem", incident.Postmortem);
+
+        var resolvedEvent = Assert.Single(
+            incident.Events,
+            item => item.EventType == IncidentEventType.Resolved
+        );
+        Assert.Equal("Updated postmortem", resolvedEvent.Body);
+
+        var postmortemEvent = Assert.Single(
+            incident.Events,
+            item => item.EventType == IncidentEventType.PostmortemPublished
+        );
+        Assert.Null(postmortemEvent.Body);
+    }
+
+    [Fact]
+    public async Task UpdatePostmortemAsync_DoesNotPublishEvent_WhenPostmortemIsCleared()
+    {
+        var now = new DateTime(2026, 4, 3, 12, 0, 0, DateTimeKind.Utc);
+        var options = CreateOptions();
+        Guid incidentId;
+
+        await using (var seedContext = new ApplicationDbContext(options))
+        {
+            var seedIncident = new Incident
+            {
+                Source = IncidentSource.Manual,
+                Status = IncidentStatus.Resolved,
+                Title = "Resolved API incident",
+                Summary = "Recovered",
+                StartedUtc = now.AddHours(-2),
+                ResolvedUtc = now.AddHours(-1),
+                Postmortem = "Initial postmortem",
+                Events =
+                [
+                    new IncidentEvent
+                    {
+                        EventType = IncidentEventType.Created,
+                        Message = "Incident opened",
+                        CreatedUtc = now.AddHours(-2),
+                    },
+                    new IncidentEvent
+                    {
+                        EventType = IncidentEventType.Resolved,
+                        Message = "Incident resolved.",
+                        Body = "Initial postmortem",
+                        CreatedUtc = now.AddHours(-1),
+                    },
+                ],
+            };
+
+            seedContext.Incidents.Add(seedIncident);
+            await seedContext.SaveChangesAsync();
+            incidentId = seedIncident.Id;
+        }
+
+        await using (var actionContext = new ApplicationDbContext(options))
+        {
+            var serviceUnderTest = new IncidentManagementService(
+                actionContext,
+                new TestTimeProvider(now)
+            );
+
+            await serviceUnderTest.UpdatePostmortemAsync(
+                incidentId,
+                "   ",
+                null,
+                CancellationToken.None
+            );
+        }
+
+        await using var verificationContext = new ApplicationDbContext(options);
+        var incident = await verificationContext
+            .Incidents.Include(item => item.Events)
+            .SingleAsync(item => item.Id == incidentId);
+
+        Assert.Null(incident.Postmortem);
+
+        var resolvedEvent = Assert.Single(
+            incident.Events,
+            item => item.EventType == IncidentEventType.Resolved
+        );
+        Assert.Null(resolvedEvent.Body);
+        Assert.DoesNotContain(
+            incident.Events,
+            item => item.EventType == IncidentEventType.PostmortemPublished
+        );
+    }
+
     private static DbContextOptions<ApplicationDbContext> CreateOptions() =>
         new DbContextOptionsBuilder<ApplicationDbContext>()
             .UseInMemoryDatabase(Guid.NewGuid().ToString())

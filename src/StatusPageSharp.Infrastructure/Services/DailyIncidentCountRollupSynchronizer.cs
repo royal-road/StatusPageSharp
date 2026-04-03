@@ -6,15 +6,20 @@ namespace StatusPageSharp.Infrastructure.Services;
 
 public static class DailyIncidentCountRollupSynchronizer
 {
-    public static async Task SyncRecentIncidentCountsAsync(
+    public static async Task SyncIncidentCountsAsync(
         ApplicationDbContext dbContext,
         Guid serviceId,
-        DateTime now,
+        DateOnly startDay,
+        DateOnly endDay,
+        DateTime unresolvedWindowEndUtc,
         CancellationToken cancellationToken
     )
     {
-        var startDay = DateOnly.FromDateTime(now.Date.AddDays(-29));
-        var endDay = DateOnly.FromDateTime(now.Date);
+        if (startDay > endDay)
+        {
+            return;
+        }
+
         var startUtc = DateTime.SpecifyKind(
             startDay.ToDateTime(TimeOnly.MinValue),
             DateTimeKind.Utc
@@ -44,14 +49,14 @@ public static class DailyIncidentCountRollupSynchronizer
                 .Where(item =>
                     item.ServiceId == serviceId
                     && item.AddedUtc < endUtc
-                    && (item.ResolvedUtc ?? now) > startUtc
+                    && (item.ResolvedUtc ?? unresolvedWindowEndUtc) > startUtc
                 )
                 .Select(item => new
                 {
                     item.Id,
                     item.IncidentId,
                     item.AddedUtc,
-                    EndedUtc = item.ResolvedUtc ?? now,
+                    EndedUtc = item.ResolvedUtc ?? unresolvedWindowEndUtc,
                 })
                 .ToListAsync(cancellationToken)
         ).ToDictionary(item => item.Id);
@@ -68,7 +73,7 @@ public static class DailyIncidentCountRollupSynchronizer
                 continue;
             }
 
-            var endedUtc = trackedWindow.Entity.ResolvedUtc ?? now;
+            var endedUtc = trackedWindow.Entity.ResolvedUtc ?? unresolvedWindowEndUtc;
             if (trackedWindow.Entity.AddedUtc >= endUtc || endedUtc <= startUtc)
             {
                 incidentWindows.Remove(trackedWindow.Entity.Id);

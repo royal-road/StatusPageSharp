@@ -20,10 +20,12 @@
             <div class="grid gap-1.5">
                 <label class="text-[0.78rem] font-semibold text-muted-foreground tracking-wide uppercase" asp-for="Input.Title">Title</label>
                 <input class="w-full px-3 py-2.5 rounded-md border border-border bg-background text-foreground text-[0.88rem] focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all" asp-for="Input.Title" />
+                <span asp-validation-for="Input.Title" class="field-validation-error"></span>
             </div>
             <div class="grid gap-1.5">
                 <label class="text-[0.78rem] font-semibold text-muted-foreground tracking-wide uppercase" asp-for="Input.Summary">Summary</label>
                 <input class="w-full px-3 py-2.5 rounded-md border border-border bg-background text-foreground text-[0.88rem] focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all" asp-for="Input.Summary" />
+                <span asp-validation-for="Input.Summary" class="field-validation-error"></span>
             </div>
             <div class="grid gap-1.5">
                 <label class="text-[0.78rem] font-semibold text-muted-foreground tracking-wide uppercase">First Affected Service</label>
@@ -33,6 +35,7 @@
                         <option value="@service.Id">@service.Name</option>
                     }
                 </select>
+                <span asp-validation-for="SelectedServiceId" class="field-validation-error"></span>
             </div>
             <div class="grid gap-1.5">
                 <label class="text-[0.78rem] font-semibold text-muted-foreground tracking-wide uppercase">Impact Level</label>
@@ -41,10 +44,81 @@
             <div class="grid gap-1.5 col-span-full">
                 <label class="text-[0.78rem] font-semibold text-muted-foreground tracking-wide uppercase" asp-for="Input.InitialEventBody">Initial Event Details</label>
                 <textarea class="w-full px-3 py-2.5 rounded-md border border-border bg-background text-foreground text-[0.88rem] focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all min-h-28 resize-y" asp-for="Input.InitialEventBody"></textarea>
+                <span asp-validation-for="Input.InitialEventBody" class="field-validation-error"></span>
             </div>
         </div>
         <div class="flex flex-wrap gap-3">
             <button class="inline-flex items-center justify-center rounded-md bg-primary text-primary-foreground px-4 py-2 text-[0.82rem] font-semibold hover:opacity-90 transition-all hover:-translate-y-px shadow-sm cursor-pointer" type="submit">@(Model.ActiveIncident is null ? "Create Incident" : "Add To Active Incident")</button>
+        </div>
+    </form>
+</section>
+
+<section class="rounded-2xl border border-border bg-card p-6 shadow-sm">
+    <div class="flex items-baseline justify-between gap-4 mb-4">
+        <h2 class="text-xl font-display font-bold tracking-tight m-0">Backfill Historical Incident</h2>
+    </div>
+    <p class="text-muted-foreground text-sm mb-4">
+        This flow always creates a separate incident with the timestamps you provide.
+    </p>
+    <form method="post" asp-page-handler="Backfill" class="grid gap-4" id="historical-incident-form">
+        <input
+            type="hidden"
+            name="HistoricalInput.StartedUtc"
+            id="historical-incident-started-utc"
+            value="@(Model.HistoricalInput.StartedUtc == default ? string.Empty : Model.HistoricalInput.StartedUtc.ToString("O"))" />
+        <input
+            type="hidden"
+            name="HistoricalInput.ResolvedUtc"
+            id="historical-incident-resolved-utc"
+            value="@(Model.HistoricalInput.ResolvedUtc?.ToString("O"))" />
+        <div asp-validation-summary="All" class="text-destructive text-sm" role="alert"></div>
+        <div class="grid grid-cols-2 gap-4 max-md:grid-cols-1">
+            <div class="grid gap-1.5">
+                <label class="text-[0.78rem] font-semibold text-muted-foreground tracking-wide uppercase" asp-for="HistoricalInput.Title">Title</label>
+                <input class="w-full px-3 py-2.5 rounded-md border border-border bg-background text-foreground text-[0.88rem] focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all" asp-for="HistoricalInput.Title" />
+                <span asp-validation-for="HistoricalInput.Title" class="field-validation-error"></span>
+            </div>
+            <div class="grid gap-1.5">
+                <label class="text-[0.78rem] font-semibold text-muted-foreground tracking-wide uppercase" asp-for="HistoricalInput.Summary">Summary</label>
+                <input class="w-full px-3 py-2.5 rounded-md border border-border bg-background text-foreground text-[0.88rem] focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all" asp-for="HistoricalInput.Summary" />
+                <span asp-validation-for="HistoricalInput.Summary" class="field-validation-error"></span>
+            </div>
+            <div class="grid gap-1.5">
+                <label class="text-[0.78rem] font-semibold text-muted-foreground tracking-wide uppercase">Affected Service</label>
+                <select class="w-full px-3 py-2.5 rounded-md border border-border bg-background text-foreground text-[0.88rem] focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all" asp-for="HistoricalSelectedServiceId">
+                    @foreach (var service in Model.Services)
+                    {
+                        <option value="@service.Id">@service.Name</option>
+                    }
+                </select>
+                <span asp-validation-for="HistoricalSelectedServiceId" class="field-validation-error"></span>
+            </div>
+            <div class="grid gap-1.5">
+                <label class="text-[0.78rem] font-semibold text-muted-foreground tracking-wide uppercase">Impact Level</label>
+                <select class="w-full px-3 py-2.5 rounded-md border border-border bg-background text-foreground text-[0.88rem] focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all" asp-for="HistoricalSelectedImpactLevel" asp-items="Html.GetEnumSelectList<StatusPageSharp.Domain.Enums.IncidentImpactLevel>()"></select>
+            </div>
+            <div class="grid gap-1.5">
+                <label class="text-[0.78rem] font-semibold text-muted-foreground tracking-wide uppercase" asp-for="HistoricalInput.StartedUtc">Started At</label>
+                <input class="w-full px-3 py-2.5 rounded-md border border-border bg-background text-foreground text-[0.88rem] focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all" type="datetime-local" id="historical-incident-started-at" required />
+                <span asp-validation-for="HistoricalInput.StartedUtc" class="field-validation-error"></span>
+            </div>
+            <div class="grid gap-1.5">
+                <label class="text-[0.78rem] font-semibold text-muted-foreground tracking-wide uppercase" asp-for="HistoricalInput.ResolvedUtc">Resolved At</label>
+                <input class="w-full px-3 py-2.5 rounded-md border border-border bg-background text-foreground text-[0.88rem] focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all" type="datetime-local" id="historical-incident-resolved-at" />
+            </div>
+            <div class="grid gap-1.5 col-span-full">
+                <label class="text-[0.78rem] font-semibold text-muted-foreground tracking-wide uppercase" asp-for="HistoricalInput.InitialEventBody">Initial Event Details</label>
+                <textarea class="w-full px-3 py-2.5 rounded-md border border-border bg-background text-foreground text-[0.88rem] focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all min-h-28 resize-y" asp-for="HistoricalInput.InitialEventBody"></textarea>
+                <span asp-validation-for="HistoricalInput.InitialEventBody" class="field-validation-error"></span>
+            </div>
+            <div class="grid gap-1.5 col-span-full">
+                <label class="text-[0.78rem] font-semibold text-muted-foreground tracking-wide uppercase" asp-for="HistoricalInput.Postmortem">Postmortem</label>
+                <textarea class="w-full px-3 py-2.5 rounded-md border border-border bg-background text-foreground text-[0.88rem] focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all min-h-28 resize-y" asp-for="HistoricalInput.Postmortem"></textarea>
+                <span asp-validation-for="HistoricalInput.Postmortem" class="field-validation-error"></span>
+            </div>
+        </div>
+        <div class="flex flex-wrap gap-3">
+            <button class="inline-flex items-center justify-center rounded-md bg-primary/10 text-primary border border-primary/10 px-4 py-2 text-[0.82rem] font-semibold hover:bg-primary/15 transition-colors cursor-pointer" type="submit">Create Historical Incident</button>
         </div>
     </form>
 </section>
@@ -77,3 +151,43 @@
         </table>
     </div>
 </section>
+
+@section Scripts {
+    <script>
+        const historicalIncidentForm = document.getElementById("historical-incident-form");
+        const historicalStartedInput = document.getElementById("historical-incident-started-at");
+        const historicalResolvedInput = document.getElementById("historical-incident-resolved-at");
+        const historicalStartedUtcInput = document.getElementById("historical-incident-started-utc");
+        const historicalResolvedUtcInput = document.getElementById("historical-incident-resolved-utc");
+
+        const toLocalDateTimeValue = (value) => {
+            const pad = (part) => String(part).padStart(2, "0");
+            return `${value.getFullYear()}-${pad(value.getMonth() + 1)}-${pad(value.getDate())}T${pad(value.getHours())}:${pad(value.getMinutes())}`;
+        };
+
+        const syncUtc = (source, target) => {
+            if (!source.value) {
+                target.value = "";
+                return;
+            }
+
+            const utcValue = new Date(source.value);
+            target.value = Number.isNaN(utcValue.valueOf()) ? "" : utcValue.toISOString();
+        };
+
+        if (historicalStartedUtcInput.value) {
+            historicalStartedInput.value = toLocalDateTimeValue(new Date(historicalStartedUtcInput.value));
+        } else {
+            historicalStartedInput.value = toLocalDateTimeValue(new Date());
+        }
+
+        if (historicalResolvedUtcInput.value) {
+            historicalResolvedInput.value = toLocalDateTimeValue(new Date(historicalResolvedUtcInput.value));
+        }
+
+        historicalIncidentForm.addEventListener("submit", () => {
+            syncUtc(historicalStartedInput, historicalStartedUtcInput);
+            syncUtc(historicalResolvedInput, historicalResolvedUtcInput);
+        });
+    </script>
+}

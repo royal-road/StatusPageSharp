@@ -67,8 +67,14 @@ public sealed class MaintenanceManagementService(ApplicationDbContext dbContext)
         {
             Title = model.Title.Trim(),
             Summary = model.Summary.Trim(),
-            StartsUtc = ConvertLocalInputToUtc(model.StartsUtc, model.TimeZoneOffsetMinutes),
-            EndsUtc = ConvertLocalInputToUtc(model.EndsUtc, model.TimeZoneOffsetMinutes),
+            StartsUtc = LocalDateTimeConverter.ConvertLocalInputToUtc(
+                model.StartsUtc,
+                model.TimeZoneOffsetMinutes
+            ),
+            EndsUtc = LocalDateTimeConverter.ConvertLocalInputToUtc(
+                model.EndsUtc,
+                model.TimeZoneOffsetMinutes
+            ),
             CreatedByUserId = userId,
             Services = model
                 .ServiceIds.Select(serviceId => new ScheduledMaintenanceService
@@ -94,11 +100,14 @@ public sealed class MaintenanceManagementService(ApplicationDbContext dbContext)
 
         maintenance.Title = model.Title.Trim();
         maintenance.Summary = model.Summary.Trim();
-        maintenance.StartsUtc = ConvertLocalInputToUtc(
+        maintenance.StartsUtc = LocalDateTimeConverter.ConvertLocalInputToUtc(
             model.StartsUtc,
             model.TimeZoneOffsetMinutes
         );
-        maintenance.EndsUtc = ConvertLocalInputToUtc(model.EndsUtc, model.TimeZoneOffsetMinutes);
+        maintenance.EndsUtc = LocalDateTimeConverter.ConvertLocalInputToUtc(
+            model.EndsUtc,
+            model.TimeZoneOffsetMinutes
+        );
 
         var desiredServiceIds = model.ServiceIds.ToHashSet();
         maintenance.Services.RemoveAll(link => !desiredServiceIds.Contains(link.ServiceId));
@@ -130,12 +139,5 @@ public sealed class MaintenanceManagementService(ApplicationDbContext dbContext)
 
         dbContext.ScheduledMaintenances.Remove(maintenance);
         await dbContext.SaveChangesAsync(cancellationToken);
-    }
-
-    private static DateTime ConvertLocalInputToUtc(DateTime localValue, int timeZoneOffsetMinutes)
-    {
-        var unspecifiedLocal = DateTime.SpecifyKind(localValue, DateTimeKind.Unspecified);
-        var utcValue = unspecifiedLocal.AddMinutes(timeZoneOffsetMinutes);
-        return DateTime.SpecifyKind(utcValue, DateTimeKind.Utc);
     }
 }

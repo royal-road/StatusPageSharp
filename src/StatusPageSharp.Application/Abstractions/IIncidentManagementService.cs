@@ -26,6 +26,12 @@ public interface IIncidentManagementService
         CancellationToken cancellationToken
     );
 
+    Task<Guid> CreateHistoricalIncidentAsync(
+        HistoricalIncidentCreateModel model,
+        string? userId,
+        CancellationToken cancellationToken
+    );
+
     Task AddManualEventAsync(
         Guid id,
         IncidentEventUpsertModel model,
@@ -41,6 +47,13 @@ public interface IIncidentManagementService
     );
 
     Task ResolveIncidentAsync(
+        Guid id,
+        string? postmortem,
+        string? userId,
+        CancellationToken cancellationToken
+    );
+
+    Task UpdatePostmortemAsync(
         Guid id,
         string? postmortem,
         string? userId,

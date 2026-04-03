@@ -16,7 +16,7 @@
 <div class="grid gap-5 grid-cols-[repeat(auto-fit,minmax(320px,1fr))]">
     <article class="rounded-2xl border border-border bg-card p-6 shadow-sm">
         <h2 class="text-lg font-bold tracking-tight m-0 mb-4">Affected Services</h2>
-        <div class="grid gap-0.5 mb-4">
+        <div class="grid gap-0.5 @(Model.CanModifyTimeline ? "mb-4" : string.Empty)">
             @foreach (var service in Model.Incident.AffectedServices)
             {
                 <div class="flex items-center justify-between gap-4 px-3.5 py-3 rounded-lg max-md:flex-col max-md:items-start">
@@ -28,55 +28,79 @@
                 </div>
             }
         </div>
-        <form method="post" asp-page-handler="AddService" class="grid gap-4 pt-4 border-t border-border">
-            <div class="grid gap-1.5">
-                <label class="text-[0.78rem] font-semibold text-muted-foreground tracking-wide uppercase" asp-for="NewServiceId">Add Service</label>
-                <select class="w-full px-3 py-2.5 rounded-md border border-border bg-background text-foreground text-[0.88rem] focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all" asp-for="NewServiceId">
-                    @foreach (var service in Model.AvailableServices)
-                    {
-                        <option value="@service.Id">@service.Name</option>
-                    }
-                </select>
-            </div>
-            <div class="grid gap-1.5">
-                <label class="text-[0.78rem] font-semibold text-muted-foreground tracking-wide uppercase" asp-for="NewServiceImpactLevel">Impact</label>
-                <select class="w-full px-3 py-2.5 rounded-md border border-border bg-background text-foreground text-[0.88rem] focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all" asp-for="NewServiceImpactLevel" asp-items="Html.GetEnumSelectList<StatusPageSharp.Domain.Enums.IncidentImpactLevel>()"></select>
-            </div>
-            <div class="flex flex-wrap gap-3">
-                <button class="inline-flex items-center justify-center rounded-md bg-primary/10 text-primary border border-primary/10 px-3.5 py-2 text-[0.82rem] font-semibold hover:bg-primary/15 transition-colors cursor-pointer" type="submit">Attach Service</button>
-            </div>
-        </form>
+        @if (Model.CanModifyTimeline)
+        {
+            <form method="post" asp-page-handler="AddService" class="grid gap-4 pt-4 border-t border-border">
+                <div class="grid gap-1.5">
+                    <label class="text-[0.78rem] font-semibold text-muted-foreground tracking-wide uppercase" asp-for="NewServiceId">Add Service</label>
+                    <select class="w-full px-3 py-2.5 rounded-md border border-border bg-background text-foreground text-[0.88rem] focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all" asp-for="NewServiceId">
+                        @foreach (var service in Model.AvailableServices)
+                        {
+                            <option value="@service.Id">@service.Name</option>
+                        }
+                    </select>
+                    <span asp-validation-for="NewServiceId" class="field-validation-error"></span>
+                </div>
+                <div class="grid gap-1.5">
+                    <label class="text-[0.78rem] font-semibold text-muted-foreground tracking-wide uppercase" asp-for="NewServiceImpactLevel">Impact</label>
+                    <select class="w-full px-3 py-2.5 rounded-md border border-border bg-background text-foreground text-[0.88rem] focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all" asp-for="NewServiceImpactLevel" asp-items="Html.GetEnumSelectList<StatusPageSharp.Domain.Enums.IncidentImpactLevel>()"></select>
+                </div>
+                <div class="flex flex-wrap gap-3">
+                    <button class="inline-flex items-center justify-center rounded-md bg-primary/10 text-primary border border-primary/10 px-3.5 py-2 text-[0.82rem] font-semibold hover:bg-primary/15 transition-colors cursor-pointer" type="submit">Attach Service</button>
+                </div>
+            </form>
+        }
     </article>
 
-    <article class="rounded-2xl border border-border bg-card p-6 shadow-sm">
-        <h2 class="text-lg font-bold tracking-tight m-0 mb-4">Add Event</h2>
-        <form method="post" asp-page-handler="AddEvent" class="grid gap-4">
-            <div class="grid gap-1.5">
-                <label class="text-[0.78rem] font-semibold text-muted-foreground tracking-wide uppercase" asp-for="NewEvent.Message">Message</label>
-                <input class="w-full px-3 py-2.5 rounded-md border border-border bg-background text-foreground text-[0.88rem] focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all" asp-for="NewEvent.Message" />
-            </div>
-            <div class="grid gap-1.5">
-                <label class="text-[0.78rem] font-semibold text-muted-foreground tracking-wide uppercase" asp-for="NewEvent.Body">Details</label>
-                <textarea class="w-full px-3 py-2.5 rounded-md border border-border bg-background text-foreground text-[0.88rem] focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all min-h-28 resize-y" asp-for="NewEvent.Body"></textarea>
-            </div>
-            <div class="flex flex-wrap gap-3">
-                <button class="inline-flex items-center justify-center rounded-md bg-primary text-primary-foreground px-4 py-2 text-[0.82rem] font-semibold hover:opacity-90 transition-all hover:-translate-y-px shadow-sm cursor-pointer" type="submit">Add Event</button>
-            </div>
-        </form>
-    </article>
+    @if (Model.CanModifyTimeline)
+    {
+        <article class="rounded-2xl border border-border bg-card p-6 shadow-sm">
+            <h2 class="text-lg font-bold tracking-tight m-0 mb-4">Add Event</h2>
+            <form method="post" asp-page-handler="AddEvent" class="grid gap-4">
+                <div class="grid gap-1.5">
+                    <label class="text-[0.78rem] font-semibold text-muted-foreground tracking-wide uppercase" asp-for="NewEvent.Message">Message</label>
+                    <input class="w-full px-3 py-2.5 rounded-md border border-border bg-background text-foreground text-[0.88rem] focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all" asp-for="NewEvent.Message" />
+                    <span asp-validation-for="NewEvent.Message" class="field-validation-error"></span>
+                </div>
+                <div class="grid gap-1.5">
+                    <label class="text-[0.78rem] font-semibold text-muted-foreground tracking-wide uppercase" asp-for="NewEvent.Body">Details</label>
+                    <textarea class="w-full px-3 py-2.5 rounded-md border border-border bg-background text-foreground text-[0.88rem] focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all min-h-28 resize-y" asp-for="NewEvent.Body"></textarea>
+                    <span asp-validation-for="NewEvent.Body" class="field-validation-error"></span>
+                </div>
+                <div class="flex flex-wrap gap-3">
+                    <button class="inline-flex items-center justify-center rounded-md bg-primary text-primary-foreground px-4 py-2 text-[0.82rem] font-semibold hover:opacity-90 transition-all hover:-translate-y-px shadow-sm cursor-pointer" type="submit">Add Event</button>
+                </div>
+            </form>
+        </article>
+    }
 </div>
 
 <section class="rounded-2xl border border-border bg-card p-6 shadow-sm">
-    <h2 class="text-lg font-bold tracking-tight m-0 mb-4">Resolve</h2>
-    <form method="post" asp-page-handler="Resolve" class="grid gap-4">
-        <div class="grid gap-1.5">
-            <label class="text-[0.78rem] font-semibold text-muted-foreground tracking-wide uppercase" asp-for="Postmortem">Postmortem</label>
-            <textarea class="w-full px-3 py-2.5 rounded-md border border-border bg-background text-foreground text-[0.88rem] focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all min-h-28 resize-y" asp-for="Postmortem"></textarea>
-        </div>
-        <div class="flex flex-wrap gap-3">
-            <button class="inline-flex items-center justify-center rounded-md bg-destructive/10 text-destructive border border-destructive/10 px-4 py-2 text-[0.82rem] font-semibold hover:bg-destructive/15 transition-colors cursor-pointer" type="submit">Resolve Incident</button>
-        </div>
-    </form>
+    <h2 class="text-lg font-bold tracking-tight m-0 mb-4">@(Model.CanModifyTimeline ? "Resolve" : "Postmortem")</h2>
+    @if (Model.CanModifyTimeline)
+    {
+        <form method="post" asp-page-handler="Resolve" class="grid gap-4">
+            <div class="grid gap-1.5">
+                <label class="text-[0.78rem] font-semibold text-muted-foreground tracking-wide uppercase" asp-for="Postmortem">Postmortem</label>
+                <textarea class="w-full px-3 py-2.5 rounded-md border border-border bg-background text-foreground text-[0.88rem] focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all min-h-28 resize-y" asp-for="Postmortem"></textarea>
+            </div>
+            <div class="flex flex-wrap gap-3">
+                <button class="inline-flex items-center justify-center rounded-md bg-destructive/10 text-destructive border border-destructive/10 px-4 py-2 text-[0.82rem] font-semibold hover:bg-destructive/15 transition-colors cursor-pointer" type="submit">Resolve Incident</button>
+            </div>
+        </form>
+    }
+    else if (Model.CanUpdateResolvedPostmortem)
+    {
+        <form method="post" asp-page-handler="SavePostmortem" class="grid gap-4">
+            <div class="grid gap-1.5">
+                <label class="text-[0.78rem] font-semibold text-muted-foreground tracking-wide uppercase" asp-for="Postmortem">Postmortem</label>
+                <textarea class="w-full px-3 py-2.5 rounded-md border border-border bg-background text-foreground text-[0.88rem] focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all min-h-28 resize-y" asp-for="Postmortem"></textarea>
+            </div>
+            <div class="flex flex-wrap gap-3">
+                <button class="inline-flex items-center justify-center rounded-md bg-primary/10 text-primary border border-primary/10 px-4 py-2 text-[0.82rem] font-semibold hover:bg-primary/15 transition-colors cursor-pointer" type="submit">Save Postmortem</button>
+            </div>
+        </form>
+    }
 </section>
 
 <section class="rounded-2xl border border-border bg-card p-6 shadow-sm">

@@ -10,14 +10,18 @@ public class IndexModel(
     IAdminCatalogService adminCatalogService
 ) : AdminPageModel
 {
-    [BindProperty]
     public ManualIncidentUpsertModel Input { get; set; } = new();
 
-    [BindProperty]
+    public HistoricalIncidentCreateModel HistoricalInput { get; set; } = new();
+
     public Guid SelectedServiceId { get; set; }
 
-    [BindProperty]
     public IncidentImpactLevel SelectedImpactLevel { get; set; } = IncidentImpactLevel.MajorOutage;
+
+    public Guid HistoricalSelectedServiceId { get; set; }
+
+    public IncidentImpactLevel HistoricalSelectedImpactLevel { get; set; } =
+        IncidentImpactLevel.MajorOutage;
 
     public IReadOnlyList<IncidentAdminModel> Incidents { get; private set; } = [];
 
@@ -27,42 +31,31 @@ public class IndexModel(
 
     public async Task OnGetAsync()
     {
-        Incidents = await incidentManagementService.GetAdminIncidentsAsync(
-            HttpContext.RequestAborted
-        );
-        Services = await adminCatalogService.GetServicesAsync(HttpContext.RequestAborted);
-        ActiveIncident = Incidents.FirstOrDefault(incident =>
-            incident.Status == IncidentStatus.Open
-        );
-        ViewData["Title"] = "Incidents";
+        await LoadPageStateAsync();
     }
 
-    public async Task<IActionResult> OnPostAsync()
+    public async Task<IActionResult> OnPostAsync(
+        Guid selectedServiceId,
+        IncidentImpactLevel selectedImpactLevel
+    )
     {
-        Input.Services =
-            SelectedServiceId == Guid.Empty
-                ? []
-                :
-                [
-                    new IncidentAffectedServiceInputModel
-                    {
-                        ServiceId = SelectedServiceId,
-                        ImpactLevel = SelectedImpactLevel,
-                    },
-                ];
+        await LoadPageStateAsync();
+
+        SelectedServiceId = selectedServiceId;
+        SelectedImpactLevel = selectedImpactLevel;
+
+        if (!await TryUpdateModelAsync(Input, nameof(Input)))
+        {
+            return Page();
+        }
+
+        Input.Services = BuildServices(SelectedServiceId, SelectedImpactLevel);
 
         if (SelectedServiceId == Guid.Empty)
         {
             ModelState.AddModelError(nameof(SelectedServiceId), "An affected service is required.");
         }
 
-        Incidents = await incidentManagementService.GetAdminIncidentsAsync(
-            HttpContext.RequestAborted
-        );
-        Services = await adminCatalogService.GetServicesAsync(HttpContext.RequestAborted);
-        ActiveIncident = Incidents.FirstOrDefault(incident =>
-            incident.Status == IncidentStatus.Open
-        );
         if (!ModelState.IsValid)
         {
             return Page();
@@ -74,5 +67,83 @@ public class IndexModel(
             HttpContext.RequestAborted
         );
         return RedirectToPage("/Admin/Incidents/Edit", new { id = incidentId });
+    }
+
+    public async Task<IActionResult> OnPostBackfillAsync(
+        Guid historicalSelectedServiceId,
+        IncidentImpactLevel historicalSelectedImpactLevel
+    )
+    {
+        await LoadPageStateAsync();
+
+        HistoricalSelectedServiceId = historicalSelectedServiceId;
+        HistoricalSelectedImpactLevel = historicalSelectedImpactLevel;
+
+        if (!await TryUpdateModelAsync(HistoricalInput, nameof(HistoricalInput)))
+        {
+            return Page();
+        }
+
+        HistoricalInput.Services = BuildServices(
+            HistoricalSelectedServiceId,
+            HistoricalSelectedImpactLevel
+        );
+
+        if (HistoricalSelectedServiceId == Guid.Empty)
+        {
+            ModelState.AddModelError(
+                nameof(HistoricalSelectedServiceId),
+                "An affected service is required."
+            );
+        }
+
+        if (!ModelState.IsValid)
+        {
+            return Page();
+        }
+
+        try
+        {
+            var incidentId = await incidentManagementService.CreateHistoricalIncidentAsync(
+                HistoricalInput,
+                CurrentUserId,
+                HttpContext.RequestAborted
+            );
+
+            return RedirectToPage("/Admin/Incidents/Edit", new { id = incidentId });
+        }
+        catch (InvalidOperationException exception)
+        {
+            ModelState.AddModelError(string.Empty, exception.Message);
+
+            return Page();
+        }
+    }
+
+    private static List<IncidentAffectedServiceInputModel> BuildServices(
+        Guid serviceId,
+        IncidentImpactLevel impactLevel
+    ) =>
+        serviceId == Guid.Empty
+            ? []
+            :
+            [
+                new IncidentAffectedServiceInputModel
+                {
+                    ServiceId = serviceId,
+                    ImpactLevel = impactLevel,
+                },
+            ];
+
+    private async Task LoadPageStateAsync()
+    {
+        Incidents = await incidentManagementService.GetAdminIncidentsAsync(
+            HttpContext.RequestAborted
+        );
+        Services = await adminCatalogService.GetServicesAsync(HttpContext.RequestAborted);
+        ActiveIncident = Incidents.FirstOrDefault(incident =>
+            incident.Status == IncidentStatus.Open
+        );
+        ViewData["Title"] = "Incidents";
     }
 }

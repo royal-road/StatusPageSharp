@@ -27,26 +27,39 @@ public class EditModel(
     [BindProperty]
     public string? Postmortem { get; set; }
 
+    public bool CanModifyTimeline => Incident is { Status: IncidentStatus.Open };
+
+    public bool CanUpdateResolvedPostmortem => Incident is { Status: IncidentStatus.Resolved };
+
     public async Task<IActionResult> OnGetAsync(Guid id)
     {
-        var incident = await incidentManagementService.GetAdminIncidentAsync(
-            id,
-            HttpContext.RequestAborted
-        );
+        var incident = await LoadIncidentAsync(id);
         if (incident is null)
         {
             return NotFound();
         }
 
-        Incident = incident;
-        Postmortem = incident.Postmortem;
-        AvailableServices = await adminCatalogService.GetServicesAsync(HttpContext.RequestAborted);
-        ViewData["Title"] = incident.Title;
         return Page();
     }
 
     public async Task<IActionResult> OnPostAddEventAsync(Guid id)
     {
+        var incident = await LoadIncidentAsync(id);
+        if (incident is null)
+        {
+            return NotFound();
+        }
+
+        if (incident.Status == IncidentStatus.Resolved)
+        {
+            return BadRequest();
+        }
+
+        if (!ModelState.IsValid)
+        {
+            return Page();
+        }
+
         await incidentManagementService.AddManualEventAsync(
             id,
             NewEvent,
@@ -58,13 +71,21 @@ public class EditModel(
 
     public async Task<IActionResult> OnPostAddServiceAsync(Guid id)
     {
-        var incident = await incidentManagementService.GetAdminIncidentAsync(
-            id,
-            HttpContext.RequestAborted
-        );
+        var incident = await LoadIncidentAsync(id);
         if (incident is null)
         {
             return NotFound();
+        }
+
+        if (incident.Status == IncidentStatus.Resolved)
+        {
+            return BadRequest();
+        }
+
+        if (NewServiceId == Guid.Empty)
+        {
+            ModelState.AddModelError(nameof(NewServiceId), "A service is required.");
+            return Page();
         }
 
         var services = incident
@@ -98,6 +119,20 @@ public class EditModel(
 
     public async Task<IActionResult> OnPostResolveAsync(Guid id)
     {
+        var incident = await incidentManagementService.GetAdminIncidentAsync(
+            id,
+            HttpContext.RequestAborted
+        );
+        if (incident is null)
+        {
+            return NotFound();
+        }
+
+        if (incident.Status == IncidentStatus.Resolved)
+        {
+            return BadRequest();
+        }
+
         await incidentManagementService.ResolveIncidentAsync(
             id,
             Postmortem,
@@ -105,5 +140,48 @@ public class EditModel(
             HttpContext.RequestAborted
         );
         return RedirectToPage(new { id });
+    }
+
+    public async Task<IActionResult> OnPostSavePostmortemAsync(Guid id)
+    {
+        var incident = await incidentManagementService.GetAdminIncidentAsync(
+            id,
+            HttpContext.RequestAborted
+        );
+        if (incident is null)
+        {
+            return NotFound();
+        }
+
+        if (incident.Status != IncidentStatus.Resolved)
+        {
+            return BadRequest();
+        }
+
+        await incidentManagementService.UpdatePostmortemAsync(
+            id,
+            Postmortem,
+            CurrentUserId,
+            HttpContext.RequestAborted
+        );
+        return RedirectToPage(new { id });
+    }
+
+    private async Task<IncidentAdminModel?> LoadIncidentAsync(Guid id)
+    {
+        var incident = await incidentManagementService.GetAdminIncidentAsync(
+            id,
+            HttpContext.RequestAborted
+        );
+        if (incident is null)
+        {
+            return null;
+        }
+
+        Incident = incident;
+        Postmortem = incident.Postmortem;
+        AvailableServices = await adminCatalogService.GetServicesAsync(HttpContext.RequestAborted);
+        ViewData["Title"] = incident.Title;
+        return incident;
     }
 }
