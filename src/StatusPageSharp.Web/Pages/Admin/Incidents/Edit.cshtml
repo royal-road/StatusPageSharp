@@ -101,6 +101,12 @@
             </div>
         </form>
     }
+    <form method="post" asp-page-handler="Delete" class="grid gap-4 mt-6 pt-6 border-t border-border" onsubmit="return confirm('Delete this incident and all of its timeline entries?');">
+        <p class="m-0 text-muted-foreground text-sm">Delete the incident when it was created by mistake or was caused by a configuration issue rather than a real outage.</p>
+        <div class="flex flex-wrap gap-3">
+            <button class="inline-flex items-center justify-center rounded-md bg-destructive/10 text-destructive border border-destructive/10 px-4 py-2 text-[0.82rem] font-semibold hover:bg-destructive/15 transition-colors cursor-pointer" type="submit">Delete Incident</button>
+        </div>
+    </form>
 </section>
 
 <section class="rounded-2xl border border-border bg-card p-6 shadow-sm">

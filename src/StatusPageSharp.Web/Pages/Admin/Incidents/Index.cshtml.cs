@@ -120,6 +120,12 @@ public class IndexModel(
         }
     }
 
+    public async Task<IActionResult> OnPostDeleteAsync(Guid id)
+    {
+        await incidentManagementService.DeleteIncidentAsync(id, HttpContext.RequestAborted);
+        return RedirectToPage();
+    }
+
     private static List<IncidentAffectedServiceInputModel> BuildServices(
         Guid serviceId,
         IncidentImpactLevel impactLevel

@@ -144,6 +144,10 @@
                     <td class="px-3 py-3 border-b border-white/[0.03]">
                         <a class="inline-flex items-center justify-center rounded-md bg-primary/10 text-primary border border-primary/10 px-2.5 py-1 text-[0.78rem] font-semibold hover:bg-primary/15 transition-colors"
                            asp-page="/Admin/Incidents/Edit" asp-route-id="@incident.Id">Open</a>
+                        <form method="post" asp-page-handler="Delete" class="inline" onsubmit="return confirm('Delete this incident and all of its timeline entries?');">
+                            <input type="hidden" name="id" value="@incident.Id" />
+                            <button class="inline-flex items-center justify-center rounded-md bg-destructive/10 text-destructive border border-destructive/10 px-2.5 py-1 text-[0.78rem] font-semibold hover:bg-destructive/15 transition-colors cursor-pointer ml-2" type="submit">Delete</button>
+                        </form>
                     </td>
                 </tr>
             }

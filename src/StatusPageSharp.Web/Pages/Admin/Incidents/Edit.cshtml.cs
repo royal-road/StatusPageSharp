@@ -142,6 +142,21 @@ public class EditModel(
         return RedirectToPage(new { id });
     }
 
+    public async Task<IActionResult> OnPostDeleteAsync(Guid id)
+    {
+        var incident = await incidentManagementService.GetAdminIncidentAsync(
+            id,
+            HttpContext.RequestAborted
+        );
+        if (incident is null)
+        {
+            return NotFound();
+        }
+
+        await incidentManagementService.DeleteIncidentAsync(id, HttpContext.RequestAborted);
+        return RedirectToPage("/Admin/Incidents/Index");
+    }
+
     public async Task<IActionResult> OnPostSavePostmortemAsync(Guid id)
     {
         var incident = await incidentManagementService.GetAdminIncidentAsync(

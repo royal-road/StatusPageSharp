@@ -240,6 +240,94 @@ public class IncidentManagementServiceTests
     }
 
     [Fact]
+    public async Task DeleteIncidentAsync_RemovesIncidentDataAndSyncsDailyRollups()
+    {
+        var now = new DateTime(2026, 4, 3, 12, 0, 0, DateTimeKind.Utc);
+        var incidentStartedUtc = new DateTime(2026, 4, 2, 10, 0, 0, DateTimeKind.Utc);
+        var options = CreateOptions();
+        Guid incidentId;
+        Guid serviceId;
+
+        await using (var seedContext = new ApplicationDbContext(options))
+        {
+            var service = CreateService("API", "api");
+            serviceId = service.Id;
+
+            var incident = new Incident
+            {
+                Source = IncidentSource.Automatic,
+                Status = IncidentStatus.Open,
+                Title = "API incident",
+                Summary = "Triggered by a bad configuration.",
+                StartedUtc = incidentStartedUtc,
+                AffectedServices =
+                [
+                    new IncidentAffectedService
+                    {
+                        Service = service,
+                        ImpactLevel = IncidentImpactLevel.PartialOutage,
+                        AddedUtc = incidentStartedUtc,
+                    },
+                ],
+                Events =
+                [
+                    new IncidentEvent
+                    {
+                        EventType = IncidentEventType.Created,
+                        Message = "Incident opened",
+                        CreatedUtc = incidentStartedUtc,
+                    },
+                ],
+            };
+
+            seedContext.Incidents.Add(incident);
+            seedContext.DailyServiceRollups.AddRange(
+                new DailyServiceRollup
+                {
+                    Service = service,
+                    Day = DateOnly.FromDateTime(incidentStartedUtc),
+                    IncidentCount = 1,
+                },
+                new DailyServiceRollup
+                {
+                    Service = service,
+                    Day = DateOnly.FromDateTime(now),
+                    IncidentCount = 1,
+                }
+            );
+
+            await seedContext.SaveChangesAsync();
+            incidentId = incident.Id;
+        }
+
+        await using (var actionContext = new ApplicationDbContext(options))
+        {
+            var serviceUnderTest = new IncidentManagementService(
+                actionContext,
+                new TestTimeProvider(now)
+            );
+
+            await serviceUnderTest.DeleteIncidentAsync(incidentId, CancellationToken.None);
+        }
+
+        await using var verificationContext = new ApplicationDbContext(options);
+        Assert.Empty(await verificationContext.Incidents.ToListAsync());
+        Assert.Empty(await verificationContext.IncidentAffectedServices.ToListAsync());
+        Assert.Empty(await verificationContext.IncidentEvents.ToListAsync());
+
+        var incidentRollups = await verificationContext
+            .DailyServiceRollups.Where(item => item.ServiceId == serviceId)
+            .OrderBy(item => item.Day)
+            .ToListAsync();
+
+        Assert.Equal(
+            [DateOnly.FromDateTime(incidentStartedUtc), DateOnly.FromDateTime(now)],
+            incidentRollups.Select(item => item.Day)
+        );
+        Assert.All(incidentRollups, item => Assert.Equal(0, item.IncidentCount));
+    }
+
+    [Fact]
     public async Task UpdatePostmortemAsync_SynchronizesResolvedEventBody()
     {
         var now = new DateTime(2026, 4, 3, 12, 0, 0, DateTimeKind.Utc);

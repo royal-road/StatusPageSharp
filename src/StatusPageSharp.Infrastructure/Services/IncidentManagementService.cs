@@ -445,6 +445,28 @@ public sealed class IncidentManagementService(
         );
     }
 
+    public async Task DeleteIncidentAsync(Guid id, CancellationToken cancellationToken)
+    {
+        var now = timeProvider.GetUtcNow().UtcDateTime;
+        var incident = await dbContext
+            .Incidents.Include(item => item.AffectedServices)
+            .Include(item => item.Events)
+            .SingleAsync(item => item.Id == id, cancellationToken);
+
+        var serviceIdsToSync = incident.AffectedServices.Select(item => item.ServiceId).ToHashSet();
+        var serviceSyncRanges = CreateAffectedServiceSyncRanges(
+            incident,
+            serviceIdsToSync,
+            DateOnly.FromDateTime((incident.ResolvedUtc ?? now).Date)
+        );
+
+        dbContext.IncidentEvents.RemoveRange(incident.Events);
+        dbContext.IncidentAffectedServices.RemoveRange(incident.AffectedServices);
+        dbContext.Incidents.Remove(incident);
+
+        await SyncIncidentCountsAndSaveChangesAsync(serviceSyncRanges, now, cancellationToken);
+    }
+
     public async Task UpdatePostmortemAsync(
         Guid id,
         string? postmortem,

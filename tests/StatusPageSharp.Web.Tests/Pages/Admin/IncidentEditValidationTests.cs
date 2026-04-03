@@ -51,6 +51,24 @@ public class IncidentEditValidationTests
         Assert.True(model.ModelState.ContainsKey(nameof(EditModel.NewServiceId)));
     }
 
+    [Fact]
+    public async Task OnPostDeleteAsync_RedirectsToIncidentIndex_WhenIncidentExists()
+    {
+        var incidentId = Guid.Parse("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa");
+        var incidentService = new TestIncidentManagementService
+        {
+            AdminIncident = CreateIncident(incidentId),
+        };
+        var adminCatalogService = new TestAdminCatalogService { Services = [CreateService()] };
+        var model = CreateModel(incidentService, adminCatalogService);
+
+        var result = await model.OnPostDeleteAsync(incidentId);
+
+        var redirect = Assert.IsType<RedirectToPageResult>(result);
+        Assert.Equal("/Admin/Incidents/Index", redirect.PageName);
+        Assert.Equal(1, incidentService.DeleteIncidentCallCount);
+    }
+
     private static EditModel CreateModel(
         IIncidentManagementService incidentManagementService,
         IAdminCatalogService adminCatalogService
@@ -120,6 +138,8 @@ public class IncidentEditValidationTests
 
         public int UpdateAffectedServicesCallCount { get; private set; }
 
+        public int DeleteIncidentCallCount { get; private set; }
+
         public Task AddManualEventAsync(
             Guid id,
             IncidentEventUpsertModel model,
@@ -142,6 +162,12 @@ public class IncidentEditValidationTests
             string? userId,
             CancellationToken cancellationToken
         ) => throw new NotSupportedException();
+
+        public Task DeleteIncidentAsync(Guid id, CancellationToken cancellationToken)
+        {
+            DeleteIncidentCallCount++;
+            return Task.CompletedTask;
+        }
 
         public Task<IncidentAdminModel?> GetAdminIncidentAsync(
             Guid id,
