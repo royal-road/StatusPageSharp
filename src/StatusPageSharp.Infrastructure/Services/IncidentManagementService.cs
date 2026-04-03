@@ -62,16 +62,7 @@ public sealed class IncidentManagementService(
                 incident.StartedUtc,
                 incident.ResolvedUtc,
                 incident.Postmortem,
-                incident
-                    .AffectedServices.OrderBy(item => item.Service.Name)
-                    .Select(item => new PublicIncidentServiceModel(
-                        item.ServiceId,
-                        item.Service.Name,
-                        item.ImpactLevel,
-                        item.IsResolved,
-                        item.ResolvedUtc
-                    ))
-                    .ToList(),
+                IncidentProjectionMapper.MapPublicAffectedServices(incident.AffectedServices),
                 incident
                     .Events.OrderBy(item => item.CreatedUtc)
                     .Select(item => new PublicIncidentEventModel(
@@ -445,6 +436,84 @@ public sealed class IncidentManagementService(
         );
     }
 
+    public async Task MergeIncidentAsync(
+        Guid targetId,
+        Guid sourceId,
+        string? userId,
+        CancellationToken cancellationToken
+    )
+    {
+        if (targetId == sourceId)
+        {
+            throw new InvalidOperationException("Choose a different incident to merge.");
+        }
+
+        var now = timeProvider.GetUtcNow().UtcDateTime;
+        var incidents = await dbContext
+            .Incidents.Include(item => item.AffectedServices)
+            .Include(item => item.Events)
+            .Where(item => item.Id == targetId || item.Id == sourceId)
+            .ToListAsync(cancellationToken);
+
+        var targetIncident = incidents.SingleOrDefault(item => item.Id == targetId);
+        var sourceIncident = incidents.SingleOrDefault(item => item.Id == sourceId);
+
+        if (targetIncident is null || sourceIncident is null)
+        {
+            throw new InvalidOperationException("The selected incident could not be found.");
+        }
+
+        var mergedAffectedServices = targetIncident
+            .AffectedServices.Concat(sourceIncident.AffectedServices)
+            .ToList();
+        var serviceSyncRanges = CreateAffectedServiceSyncRanges(mergedAffectedServices, now);
+
+        PreserveSummaryOnTimeline(sourceIncident);
+
+        foreach (var affectedService in sourceIncident.AffectedServices.ToList())
+        {
+            sourceIncident.AffectedServices.Remove(affectedService);
+            affectedService.Incident = targetIncident;
+            affectedService.IncidentId = targetIncident.Id;
+            targetIncident.AffectedServices.Add(affectedService);
+        }
+
+        foreach (var incidentEvent in sourceIncident.Events.ToList())
+        {
+            sourceIncident.Events.Remove(incidentEvent);
+            incidentEvent.Incident = targetIncident;
+            incidentEvent.IncidentId = targetIncident.Id;
+            targetIncident.Events.Add(incidentEvent);
+        }
+
+        targetIncident.StartedUtc =
+            targetIncident.StartedUtc <= sourceIncident.StartedUtc
+                ? targetIncident.StartedUtc
+                : sourceIncident.StartedUtc;
+
+        var hasOpenServices = targetIncident.AffectedServices.Any(item => !item.IsResolved);
+        targetIncident.Status = hasOpenServices ? IncidentStatus.Open : IncidentStatus.Resolved;
+        targetIncident.ResolvedUtc = hasOpenServices
+            ? null
+            : GetMergedResolvedUtc(targetIncident, sourceIncident);
+        targetIncident.Postmortem =
+            targetIncident.Status == IncidentStatus.Resolved
+                ? MergePostmortem(
+                    targetIncident.Postmortem,
+                    sourceIncident.Postmortem,
+                    sourceIncident.Title
+                )
+                : null;
+
+        if (targetIncident.Status == IncidentStatus.Resolved)
+        {
+            SyncResolvedEventBody(targetIncident);
+        }
+
+        dbContext.Incidents.Remove(sourceIncident);
+        await SyncIncidentCountsAndSaveChangesAsync(serviceSyncRanges, now, cancellationToken);
+    }
+
     public async Task DeleteIncidentAsync(Guid id, CancellationToken cancellationToken)
     {
         var now = timeProvider.GetUtcNow().UtcDateTime;
@@ -487,14 +556,7 @@ public sealed class IncidentManagementService(
 
         var previousPostmortem = incident.Postmortem;
         incident.Postmortem = NormalizeOptionalText(postmortem);
-        var resolvedEvent = incident
-            .Events.Where(item => item.EventType == IncidentEventType.Resolved)
-            .OrderByDescending(item => item.CreatedUtc)
-            .FirstOrDefault();
-        if (resolvedEvent is not null)
-        {
-            resolvedEvent.Body = incident.Postmortem;
-        }
+        SyncResolvedEventBody(incident);
 
         if (
             incident.Postmortem is not null
@@ -571,17 +633,7 @@ public sealed class IncidentManagementService(
             incident.StartedUtc,
             incident.ResolvedUtc,
             incident.Postmortem,
-            incident
-                .AffectedServices.OrderBy(item => item.Service.Name)
-                .Select(item => new IncidentAffectedServiceAdminModel(
-                    item.ServiceId,
-                    item.Service.Name,
-                    item.ImpactLevel,
-                    item.AddedUtc,
-                    item.IsResolved,
-                    item.ResolvedUtc
-                ))
-                .ToList(),
+            IncidentProjectionMapper.MapAdminAffectedServices(incident.AffectedServices),
             incident
                 .Events.OrderBy(item => item.CreatedUtc)
                 .Select(item => new IncidentEventAdminModel(
@@ -599,6 +651,81 @@ public sealed class IncidentManagementService(
 
     private static string? NormalizeOptionalText(string? value) =>
         string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+
+    private static DateTime? GetMergedResolvedUtc(Incident targetIncident, Incident sourceIncident)
+    {
+        List<DateTime> resolvedUtcValues = [];
+        if (targetIncident.ResolvedUtc is not null)
+        {
+            resolvedUtcValues.Add(targetIncident.ResolvedUtc.Value);
+        }
+
+        if (sourceIncident.ResolvedUtc is not null)
+        {
+            resolvedUtcValues.Add(sourceIncident.ResolvedUtc.Value);
+        }
+
+        resolvedUtcValues.AddRange(
+            targetIncident
+                .AffectedServices.Where(item => item.ResolvedUtc is not null)
+                .Select(item => item.ResolvedUtc!.Value)
+        );
+
+        return resolvedUtcValues.Count == 0 ? null : resolvedUtcValues.Max();
+    }
+
+    private static string? MergePostmortem(
+        string? targetPostmortem,
+        string? sourcePostmortem,
+        string sourceTitle
+    )
+    {
+        var normalizedTargetPostmortem = NormalizeOptionalText(targetPostmortem);
+        var normalizedSourcePostmortem = NormalizeOptionalText(sourcePostmortem);
+
+        return (normalizedTargetPostmortem, normalizedSourcePostmortem) switch
+        {
+            (null, null) => null,
+            (not null, null) => normalizedTargetPostmortem,
+            (null, not null) => normalizedSourcePostmortem,
+            _ when string.Equals(
+                    normalizedTargetPostmortem,
+                    normalizedSourcePostmortem,
+                    StringComparison.Ordinal
+                ) => normalizedTargetPostmortem,
+            _ =>
+                $"{normalizedTargetPostmortem}\n\nMerged notes from \"{sourceTitle}\":\n{normalizedSourcePostmortem}",
+        };
+    }
+
+    private static void SyncResolvedEventBody(Incident incident)
+    {
+        var resolvedEvent = incident
+            .Events.Where(item => item.EventType == IncidentEventType.Resolved)
+            .OrderByDescending(item => item.CreatedUtc)
+            .FirstOrDefault();
+        if (resolvedEvent is not null)
+        {
+            resolvedEvent.Body = incident.Postmortem;
+        }
+    }
+
+    private static void PreserveSummaryOnTimeline(Incident incident)
+    {
+        if (string.IsNullOrWhiteSpace(incident.Summary))
+        {
+            return;
+        }
+
+        var createdEvent = incident
+            .Events.Where(item => item.EventType == IncidentEventType.Created)
+            .OrderBy(item => item.CreatedUtc)
+            .FirstOrDefault();
+        if (createdEvent is not null && string.IsNullOrWhiteSpace(createdEvent.Body))
+        {
+            createdEvent.Body = incident.Summary;
+        }
+    }
 
     private static DateTime NormalizeUtcInput(DateTime value, string missingMessage)
     {
@@ -710,15 +837,28 @@ public sealed class IncidentManagementService(
         DateOnly endDay
     )
     {
+        return CreateAffectedServiceSyncRanges(
+            incident.AffectedServices.Where(item => serviceIds.Contains(item.ServiceId)),
+            DateTime.SpecifyKind(endDay.ToDateTime(TimeOnly.MinValue), DateTimeKind.Utc)
+        );
+    }
+
+    private static IReadOnlyDictionary<
+        Guid,
+        (DateOnly StartDay, DateOnly EndDay)
+    > CreateAffectedServiceSyncRanges(
+        IEnumerable<IncidentAffectedService> affectedServices,
+        DateTime unresolvedWindowEndUtc
+    )
+    {
         Dictionary<Guid, (DateOnly StartDay, DateOnly EndDay)> ranges = [];
-        foreach (var serviceId in serviceIds)
+        foreach (var group in affectedServices.GroupBy(item => item.ServiceId))
         {
-            var startDay = incident
-                .AffectedServices.Where(item => item.ServiceId == serviceId)
-                .Select(item => DateOnly.FromDateTime(item.AddedUtc))
-                .DefaultIfEmpty(endDay)
-                .Min();
-            ranges[serviceId] = (startDay, endDay);
+            var startDay = group.Min(item => DateOnly.FromDateTime(item.AddedUtc));
+            var endDay = group.Max(item =>
+                DateOnly.FromDateTime((item.ResolvedUtc ?? unresolvedWindowEndUtc).Date)
+            );
+            ranges[group.Key] = (startDay, endDay);
         }
 
         return ranges;

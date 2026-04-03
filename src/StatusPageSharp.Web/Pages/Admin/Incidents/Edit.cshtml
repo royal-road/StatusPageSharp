@@ -101,6 +101,26 @@
             </div>
         </form>
     }
+    @if (Model.MergeCandidates.Count > 0)
+    {
+        <form method="post" asp-page-handler="Merge" class="grid gap-4 mt-6 pt-6 border-t border-border" onsubmit="return confirm('Merge the selected incident into this incident and remove the merged record?');">
+            <div class="grid gap-1.5">
+                <label class="text-[0.78rem] font-semibold text-muted-foreground tracking-wide uppercase" asp-for="MergeSourceIncidentId">Merge Another Incident</label>
+                <select class="w-full px-3 py-2.5 rounded-md border border-border bg-background text-foreground text-[0.88rem] focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all" asp-for="MergeSourceIncidentId">
+                    <option value="@Guid.Empty">Select an incident</option>
+                    @foreach (var candidate in Model.MergeCandidates)
+                    {
+                        <option value="@candidate.Id">@candidate.Title · @candidate.Status · @candidate.StartedUtc.ToLocalTime().ToString("g")</option>
+                    }
+                </select>
+                <span asp-validation-for="MergeSourceIncidentId" class="field-validation-error"></span>
+            </div>
+            <p class="m-0 text-muted-foreground text-sm">Use this when monitoring flaps create separate incidents for the same outage window. The selected incident's timeline and affected services will be folded into this one.</p>
+            <div class="flex flex-wrap gap-3">
+                <button class="inline-flex items-center justify-center rounded-md bg-primary/10 text-primary border border-primary/10 px-4 py-2 text-[0.82rem] font-semibold hover:bg-primary/15 transition-colors cursor-pointer" type="submit">Merge Incident</button>
+            </div>
+        </form>
+    }
     <form method="post" asp-page-handler="Delete" class="grid gap-4 mt-6 pt-6 border-t border-border" onsubmit="return confirm('Delete this incident and all of its timeline entries?');">
         <p class="m-0 text-muted-foreground text-sm">Delete the incident when it was created by mistake or was caused by a configuration issue rather than a real outage.</p>
         <div class="flex flex-wrap gap-3">

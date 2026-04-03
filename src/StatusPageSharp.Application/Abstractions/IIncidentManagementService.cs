@@ -53,6 +53,13 @@ public interface IIncidentManagementService
         CancellationToken cancellationToken
     );
 
+    Task MergeIncidentAsync(
+        Guid targetId,
+        Guid sourceId,
+        string? userId,
+        CancellationToken cancellationToken
+    );
+
     Task DeleteIncidentAsync(Guid id, CancellationToken cancellationToken);
 
     Task UpdatePostmortemAsync(

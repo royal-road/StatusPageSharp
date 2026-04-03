@@ -14,6 +14,8 @@ public class EditModel(
 
     public IReadOnlyList<ServiceAdminModel> AvailableServices { get; private set; } = [];
 
+    public IReadOnlyList<IncidentAdminModel> MergeCandidates { get; private set; } = [];
+
     [BindProperty]
     public IncidentEventUpsertModel NewEvent { get; set; } = new();
 
@@ -26,6 +28,9 @@ public class EditModel(
 
     [BindProperty]
     public string? Postmortem { get; set; }
+
+    [BindProperty]
+    public Guid MergeSourceIncidentId { get; set; }
 
     public bool CanModifyTimeline => Incident is { Status: IncidentStatus.Open };
 
@@ -142,6 +147,41 @@ public class EditModel(
         return RedirectToPage(new { id });
     }
 
+    public async Task<IActionResult> OnPostMergeAsync(Guid id)
+    {
+        var incident = await LoadIncidentAsync(id);
+        if (incident is null)
+        {
+            return NotFound();
+        }
+
+        if (MergeSourceIncidentId == Guid.Empty)
+        {
+            ModelState.AddModelError(
+                nameof(MergeSourceIncidentId),
+                "Select an incident to merge into this one."
+            );
+            return Page();
+        }
+
+        try
+        {
+            await incidentManagementService.MergeIncidentAsync(
+                id,
+                MergeSourceIncidentId,
+                CurrentUserId,
+                HttpContext.RequestAborted
+            );
+        }
+        catch (InvalidOperationException exception)
+        {
+            ModelState.AddModelError(nameof(MergeSourceIncidentId), exception.Message);
+            return Page();
+        }
+
+        return RedirectToPage(new { id });
+    }
+
     public async Task<IActionResult> OnPostDeleteAsync(Guid id)
     {
         var incident = await incidentManagementService.GetAdminIncidentAsync(
@@ -196,6 +236,11 @@ public class EditModel(
         Incident = incident;
         Postmortem = incident.Postmortem;
         AvailableServices = await adminCatalogService.GetServicesAsync(HttpContext.RequestAborted);
+        MergeCandidates = (
+            await incidentManagementService.GetAdminIncidentsAsync(HttpContext.RequestAborted)
+        )
+            .Where(item => item.Id != id)
+            .ToList();
         ViewData["Title"] = incident.Title;
         return incident;
     }

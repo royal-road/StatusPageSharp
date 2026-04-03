@@ -180,16 +180,7 @@ public sealed class PublicStatusService(ApplicationDbContext dbContext, TimeProv
                 incident.StartedUtc,
                 incident.ResolvedUtc,
                 incident.Postmortem,
-                incident
-                    .AffectedServices.OrderBy(item => item.Service.Name)
-                    .Select(item => new PublicIncidentServiceModel(
-                        item.ServiceId,
-                        item.Service.Name,
-                        item.ImpactLevel,
-                        item.IsResolved,
-                        item.ResolvedUtc
-                    ))
-                    .ToList(),
+                IncidentProjectionMapper.MapPublicAffectedServices(incident.AffectedServices),
                 incident
                     .Events.OrderBy(item => item.CreatedUtc)
                     .Select(item => new PublicIncidentEventModel(

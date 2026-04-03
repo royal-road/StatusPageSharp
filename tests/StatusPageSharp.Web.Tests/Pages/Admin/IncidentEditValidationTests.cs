@@ -69,6 +69,50 @@ public class IncidentEditValidationTests
         Assert.Equal(1, incidentService.DeleteIncidentCallCount);
     }
 
+    [Fact]
+    public async Task OnPostMergeAsync_ReturnsPage_WhenIncidentIsNotSelected()
+    {
+        var incidentId = Guid.Parse("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa");
+        var incidentService = new TestIncidentManagementService
+        {
+            AdminIncident = CreateIncident(incidentId),
+        };
+        var adminCatalogService = new TestAdminCatalogService { Services = [CreateService()] };
+        var model = CreateModel(incidentService, adminCatalogService);
+
+        var result = await model.OnPostMergeAsync(incidentId);
+
+        Assert.IsType<PageResult>(result);
+        Assert.Equal(0, incidentService.MergeIncidentCallCount);
+        Assert.True(model.ModelState.ContainsKey(nameof(EditModel.MergeSourceIncidentId)));
+    }
+
+    [Fact]
+    public async Task OnPostMergeAsync_RedirectsToPage_WhenIncidentIsSelected()
+    {
+        var incidentId = Guid.Parse("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa");
+        var sourceIncidentId = Guid.Parse("dddddddd-dddd-dddd-dddd-dddddddddddd");
+        var sourceIncident = CreateIncident(sourceIncidentId) with
+        {
+            Title = "Database API follow-up",
+            StartedUtc = DateTime.Parse("2026-04-03T12:10:00Z").ToUniversalTime(),
+        };
+        var incidentService = new TestIncidentManagementService
+        {
+            AdminIncident = CreateIncident(incidentId),
+            Incidents = [CreateIncident(incidentId), sourceIncident],
+        };
+        var adminCatalogService = new TestAdminCatalogService { Services = [CreateService()] };
+        var model = CreateModel(incidentService, adminCatalogService);
+        model.MergeSourceIncidentId = sourceIncidentId;
+
+        var result = await model.OnPostMergeAsync(incidentId);
+
+        var redirect = Assert.IsType<RedirectToPageResult>(result);
+        Assert.Null(redirect.PageName);
+        Assert.Equal(1, incidentService.MergeIncidentCallCount);
+    }
+
     private static EditModel CreateModel(
         IIncidentManagementService incidentManagementService,
         IAdminCatalogService adminCatalogService
@@ -134,9 +178,13 @@ public class IncidentEditValidationTests
     {
         public IncidentAdminModel? AdminIncident { get; set; }
 
+        public IReadOnlyList<IncidentAdminModel> Incidents { get; set; } = [];
+
         public int AddManualEventCallCount { get; private set; }
 
         public int UpdateAffectedServicesCallCount { get; private set; }
+
+        public int MergeIncidentCallCount { get; private set; }
 
         public int DeleteIncidentCallCount { get; private set; }
 
@@ -163,6 +211,17 @@ public class IncidentEditValidationTests
             CancellationToken cancellationToken
         ) => throw new NotSupportedException();
 
+        public Task MergeIncidentAsync(
+            Guid targetId,
+            Guid sourceId,
+            string? userId,
+            CancellationToken cancellationToken
+        )
+        {
+            MergeIncidentCallCount++;
+            return Task.CompletedTask;
+        }
+
         public Task DeleteIncidentAsync(Guid id, CancellationToken cancellationToken)
         {
             DeleteIncidentCallCount++;
@@ -176,7 +235,17 @@ public class IncidentEditValidationTests
 
         public Task<IReadOnlyList<IncidentAdminModel>> GetAdminIncidentsAsync(
             CancellationToken cancellationToken
-        ) => throw new NotSupportedException();
+        )
+        {
+            if (Incidents.Count > 0)
+            {
+                return Task.FromResult(Incidents);
+            }
+
+            return Task.FromResult<IReadOnlyList<IncidentAdminModel>>(
+                AdminIncident is null ? [] : [AdminIncident]
+            );
+        }
 
         public Task<PublicIncidentDetailsModel?> GetIncidentAsync(
             Guid id,
