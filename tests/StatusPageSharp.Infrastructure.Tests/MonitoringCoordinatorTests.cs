@@ -88,7 +88,7 @@ public class MonitoringCoordinatorTests
         );
         var coordinator = new MonitoringCoordinator(
             new TestDbContextFactory(options),
-            new MonitorProbeClient(new TestHttpClientFactory(httpClient)),
+            new MonitorProbeClient(new TestHttpClientFactory(httpClient), new TestPingClient()),
             new TestTimeProvider(now)
         );
 
@@ -154,7 +154,7 @@ public class MonitoringCoordinatorTests
         );
         var coordinator = new MonitoringCoordinator(
             new TestDbContextFactory(options),
-            new MonitorProbeClient(new TestHttpClientFactory(httpClient)),
+            new MonitorProbeClient(new TestHttpClientFactory(httpClient), new TestPingClient()),
             new TestTimeProvider(now)
         );
 
@@ -231,7 +231,10 @@ public class MonitoringCoordinatorTests
 
         var coordinator = new MonitoringCoordinator(
             new TestDbContextFactory(options),
-            new MonitorProbeClient(new TestHttpClientFactory(new HttpClient())),
+            new MonitorProbeClient(
+                new TestHttpClientFactory(new HttpClient()),
+                new TestPingClient()
+            ),
             new TestTimeProvider(now)
         );
 

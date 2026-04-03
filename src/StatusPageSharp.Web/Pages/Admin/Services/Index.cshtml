@@ -28,7 +28,7 @@
                 <tr class="transition-colors hover:bg-white/[0.02]">
                     <td class="px-3 py-3 border-b border-white/[0.03] text-[0.88rem]">@service.Name</td>
                     <td class="px-3 py-3 border-b border-white/[0.03] text-[0.88rem]">@service.GroupName</td>
-                    <td class="px-3 py-3 border-b border-white/[0.03] text-[0.88rem]">@service.MonitorType</td>
+                    <td class="px-3 py-3 border-b border-white/[0.03] text-[0.88rem]">@service.MonitorType.ToString().ToUpperInvariant()</td>
                     <td class="px-3 py-3 border-b border-white/[0.03] text-[0.88rem]">@service.CheckPeriodSeconds sec</td>
                     <td class="px-3 py-3 border-b border-white/[0.03] text-[0.88rem]">@(service.IsEnabled ? "Enabled" : "Disabled")</td>
                     <td class="px-3 py-3 border-b border-white/[0.03]">

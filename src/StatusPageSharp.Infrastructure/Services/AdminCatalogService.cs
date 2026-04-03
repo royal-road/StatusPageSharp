@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using StatusPageSharp.Application.Abstractions;
 using StatusPageSharp.Application.Models.Admin;
 using StatusPageSharp.Domain.Entities;
+using StatusPageSharp.Domain.Enums;
 using StatusPageSharp.Infrastructure.Data;
 
 namespace StatusPageSharp.Infrastructure.Services;
@@ -19,7 +20,7 @@ public sealed class AdminCatalogService(
         var serviceCount = await dbContext.Services.CountAsync(cancellationToken);
         var groupCount = await dbContext.ServiceGroups.CountAsync(cancellationToken);
         var openIncidentCount = await dbContext.Incidents.CountAsync(
-            incident => incident.Status == Domain.Enums.IncidentStatus.Open,
+            incident => incident.Status == IncidentStatus.Open,
             cancellationToken
         );
         var activeMaintenanceCount = await dbContext.ScheduledMaintenances.CountAsync(
@@ -148,7 +149,7 @@ public sealed class AdminCatalogService(
             {
                 MonitorType = model.MonitorType,
                 Host = NormalizeOptionalString(model.Host),
-                Port = model.Port,
+                Port = model.MonitorType == MonitorType.Icmp ? null : model.Port,
                 Url = NormalizeOptionalString(model.Url),
                 HttpMethod = model.HttpMethod.Trim().ToUpperInvariant(),
                 RequestHeadersJson = NormalizeOptionalString(model.RequestHeadersJson),
@@ -190,7 +191,10 @@ public sealed class AdminCatalogService(
         entity.RawRetentionDaysOverride = model.RawRetentionDaysOverride;
         entity.MonitorDefinition.MonitorType = model.MonitorType;
         entity.MonitorDefinition.Host = NormalizeOptionalString(model.Host);
-        entity.MonitorDefinition.Port = model.Port;
+        entity.MonitorDefinition.Port =
+            model.MonitorType == MonitorType.Icmp
+                ? entity.MonitorDefinition.Port
+                : model.Port ?? entity.MonitorDefinition.Port;
         entity.MonitorDefinition.Url = NormalizeOptionalString(model.Url);
         entity.MonitorDefinition.HttpMethod = model.HttpMethod.Trim().ToUpperInvariant();
         entity.MonitorDefinition.RequestHeadersJson = NormalizeOptionalString(

@@ -65,19 +65,11 @@ public sealed class ServiceUpsertModel : IValidatableObject
 
     public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
     {
-        if (MonitorType == MonitorType.Tcp)
+        if (MonitorType == MonitorType.Icmp)
         {
             if (string.IsNullOrWhiteSpace(Host))
             {
-                yield return new ValidationResult("TCP monitors require a host.", [nameof(Host)]);
-            }
-
-            if (Port is null or < 1 or > 65535)
-            {
-                yield return new ValidationResult(
-                    "TCP monitors require a valid port.",
-                    [nameof(Port)]
-                );
+                yield return new ValidationResult("ICMP monitors require a host.", [nameof(Host)]);
             }
         }
 

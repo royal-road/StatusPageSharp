@@ -1,7 +1,7 @@
 using System.Diagnostics;
 using System.Net.Http;
+using System.Net.NetworkInformation;
 using System.Net.Security;
-using System.Net.Sockets;
 using System.Security.Authentication;
 using System.Text;
 using System.Text.Json;
@@ -10,7 +10,7 @@ using StatusPageSharp.Domain.Enums;
 
 namespace StatusPageSharp.Infrastructure.Monitoring;
 
-public sealed class MonitorProbeClient(IHttpClientFactory httpClientFactory)
+public sealed class MonitorProbeClient(IHttpClientFactory httpClientFactory, IPingClient pingClient)
 {
     public async Task<CheckProbeResult> ExecuteAsync(
         CheckProbeRequest request,
@@ -19,7 +19,7 @@ public sealed class MonitorProbeClient(IHttpClientFactory httpClientFactory)
     {
         return request.MonitorType switch
         {
-            MonitorType.Tcp => await ExecuteTcpAsync(request, cancellationToken),
+            MonitorType.Icmp => await ExecuteIcmpAsync(request, cancellationToken),
             MonitorType.Http or MonitorType.Https => await ExecuteHttpAsync(
                 request,
                 cancellationToken
@@ -35,19 +35,19 @@ public sealed class MonitorProbeClient(IHttpClientFactory httpClientFactory)
         };
     }
 
-    private static async Task<CheckProbeResult> ExecuteTcpAsync(
+    private async Task<CheckProbeResult> ExecuteIcmpAsync(
         CheckProbeRequest request,
         CancellationToken cancellationToken
     )
     {
-        if (string.IsNullOrWhiteSpace(request.Host) || request.Port is null)
+        if (string.IsNullOrWhiteSpace(request.Host))
         {
             return new CheckProbeResult(
                 false,
                 0,
                 null,
                 CheckFailureKind.Exception,
-                "TCP monitors require host and port.",
+                "ICMP monitors require a host.",
                 null
             );
         }
@@ -56,44 +56,59 @@ public sealed class MonitorProbeClient(IHttpClientFactory httpClientFactory)
 
         try
         {
-            using var timeoutSource = CancellationTokenSource.CreateLinkedTokenSource(
+            var status = await pingClient.SendAsync(
+                request.Host,
+                TimeSpan.FromSeconds(request.TimeoutSeconds),
                 cancellationToken
             );
-            timeoutSource.CancelAfter(TimeSpan.FromSeconds(request.TimeoutSeconds));
+            stopwatch.Stop();
 
-            using var tcpClient = new TcpClient();
-            await tcpClient.ConnectAsync(request.Host, request.Port.Value, timeoutSource.Token);
-            stopwatch.Stop();
+            if (status == IPStatus.Success)
+            {
+                return new CheckProbeResult(
+                    true,
+                    (int)stopwatch.ElapsedMilliseconds,
+                    null,
+                    CheckFailureKind.None,
+                    null,
+                    null
+                );
+            }
+
+            if (status == IPStatus.TimedOut)
+            {
+                return new CheckProbeResult(
+                    false,
+                    (int)stopwatch.ElapsedMilliseconds,
+                    null,
+                    CheckFailureKind.Timeout,
+                    "The ICMP probe timed out.",
+                    null
+                );
+            }
+
             return new CheckProbeResult(
-                true,
+                false,
                 (int)stopwatch.ElapsedMilliseconds,
                 null,
-                CheckFailureKind.None,
-                null,
+                CheckFailureKind.IcmpFailure,
+                $"Received ICMP status {status}.",
                 null
             );
         }
-        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (PlatformNotSupportedException exception)
         {
             stopwatch.Stop();
             return new CheckProbeResult(
                 false,
                 (int)stopwatch.ElapsedMilliseconds,
                 null,
-                CheckFailureKind.Timeout,
-                "The TCP probe timed out.",
-                null
-            );
-        }
-        catch (SocketException exception)
-        {
-            stopwatch.Stop();
-            return new CheckProbeResult(
-                false,
-                (int)stopwatch.ElapsedMilliseconds,
-                null,
-                CheckFailureKind.TcpConnectionFailure,
-                exception.Message,
+                CheckFailureKind.Exception,
+                BuildIcmpSupportFailureMessage(exception),
                 null
             );
         }
@@ -109,6 +124,16 @@ public sealed class MonitorProbeClient(IHttpClientFactory httpClientFactory)
                 null
             );
         }
+    }
+
+    private static string BuildIcmpSupportFailureMessage(PlatformNotSupportedException exception)
+    {
+        const string requirement =
+            "ICMP probing requires either raw socket access or the system ping utility in the worker image.";
+
+        return string.IsNullOrWhiteSpace(exception.Message)
+            ? requirement
+            : $"{exception.Message} {requirement}";
     }
 
     private async Task<CheckProbeResult> ExecuteHttpAsync(

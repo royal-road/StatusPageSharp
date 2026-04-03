@@ -62,6 +62,7 @@ public static class InfrastructureServiceCollectionExtensions
     {
         services.TryAddSingleton<TimeProvider>(TimeProvider.System);
         services.AddHttpClient();
+        services.TryAddTransient<IPingClient, SystemPingClient>();
         services.AddTransient<MonitorProbeClient>();
         services.AddSingleton<IMonitoringCoordinator, MonitoringCoordinator>();
     }
