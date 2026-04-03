@@ -22,10 +22,15 @@ builder.Services.AddAuthorization(options =>
 {
     options.AddPolicy("AdminOnly", policy => policy.RequireRole(RoleNames.Administrator));
 });
+builder.Services.AddRouting(options =>
+{
+    options.LowercaseUrls = true;
+});
 
 builder.Services.ConfigureApplicationCookie(options =>
 {
-    options.LoginPath = "/Identity/Account/Login";
+    options.LoginPath = "/identity/account/login";
+    options.AccessDeniedPath = "/identity/account/accessdenied";
     options.Events.OnValidatePrincipal = async context =>
     {
         var userManager = context.HttpContext.RequestServices.GetRequiredService<
@@ -64,7 +69,7 @@ if (app.Environment.IsDevelopment())
 }
 else
 {
-    app.UseExceptionHandler("/Error");
+    app.UseExceptionHandler("/error");
     app.UseHsts();
 }
 
