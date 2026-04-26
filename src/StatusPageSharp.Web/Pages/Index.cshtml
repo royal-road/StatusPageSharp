@@ -27,7 +27,7 @@
                 <a class="obsidian-card-elevated group p-5"
                    asp-page="/Incidents/Details" asp-route-id="@incident.Id">
                     <strong class="text-[0.9rem] font-semibold block mb-1.5 group-hover:text-primary transition-colors">@incident.Title</strong>
-                    <p class="m-0 text-muted-foreground text-[0.84rem] leading-relaxed">@incident.Summary</p>
+                    <p class="m-0 whitespace-pre-wrap text-muted-foreground text-[0.84rem] leading-relaxed">@incident.Summary</p>
                     <span class="block mt-2 text-muted-foreground/50 font-mono text-[0.72rem]">Started @incident.StartedUtc.ToLocalTime().ToString("g")</span>
                 </a>
             }

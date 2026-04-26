@@ -425,22 +425,81 @@ public sealed class PublicStatusService(ApplicationDbContext dbContext, TimeProv
             .Where(incident => status == null || incident.Status == status)
             .OrderByDescending(incident => incident.StartedUtc)
             .ToListAsync(cancellationToken);
+        var publicIncidentSummaries = await GetPublicIncidentSummaryOverridesAsync(
+            incidents
+                .Where(incident => incident.Status == IncidentStatus.Open)
+                .Select(incident => incident.Id)
+                .ToList(),
+            cancellationToken
+        );
 
         return incidents
-            .Select(incident => new PublicIncidentSummaryModel(
-                incident.Id,
-                incident.Title,
-                incident.Summary,
-                incident.Status,
-                incident.StartedUtc,
-                incident.ResolvedUtc,
-                incident
-                    .AffectedServices.Select(item => item.Service.Name)
-                    .Distinct()
-                    .OrderBy(name => name)
-                    .ToList()
-            ))
+            .Select(incident =>
+            {
+                var summary =
+                    incident.Status == IncidentStatus.Open
+                    && publicIncidentSummaries.TryGetValue(incident.Id, out var publicSummary)
+                        ? publicSummary
+                        : incident.Summary;
+
+                return new PublicIncidentSummaryModel(
+                    incident.Id,
+                    incident.Title,
+                    summary,
+                    incident.Status,
+                    incident.StartedUtc,
+                    incident.ResolvedUtc,
+                    incident
+                        .AffectedServices.Select(item => item.Service.Name)
+                        .Distinct()
+                        .OrderBy(name => name)
+                        .ToList()
+                );
+            })
             .ToList();
+    }
+
+    private async Task<Dictionary<Guid, string>> GetPublicIncidentSummaryOverridesAsync(
+        IReadOnlyCollection<Guid> incidentIds,
+        CancellationToken cancellationToken
+    )
+    {
+        if (incidentIds.Count == 0)
+        {
+            return [];
+        }
+
+        var eventSummaries = await dbContext
+            .IncidentEvents.AsNoTracking()
+            .Where(item =>
+                incidentIds.Contains(item.IncidentId)
+                && !item.IsSystemGenerated
+                && (
+                    item.EventType == IncidentEventType.Created
+                    || item.EventType == IncidentEventType.Update
+                )
+                && item.Body != null
+            )
+            .OrderByDescending(item => item.CreatedUtc)
+            .Select(item => new { item.IncidentId, item.Body })
+            .ToListAsync(cancellationToken);
+
+        Dictionary<Guid, string> summaries = [];
+        foreach (var eventSummary in eventSummaries)
+        {
+            if (summaries.ContainsKey(eventSummary.IncidentId))
+            {
+                continue;
+            }
+
+            var normalizedBody = NormalizeOptionalText(eventSummary.Body);
+            if (normalizedBody is not null)
+            {
+                summaries[eventSummary.IncidentId] = normalizedBody;
+            }
+        }
+
+        return summaries;
     }
 
     private async Task<IReadOnlyList<PublicMaintenanceSummaryModel>> GetPublicMaintenanceAsync(
@@ -472,6 +531,9 @@ public sealed class PublicStatusService(ApplicationDbContext dbContext, TimeProv
         int successfulChecks,
         int eligibleChecks
     ) => eligibleChecks == 0 ? 100m : Math.Round(successfulChecks * 100m / eligibleChecks, 2);
+
+    private static string? NormalizeOptionalText(string? value) =>
+        string.IsNullOrWhiteSpace(value) ? null : value.Trim();
 
     private static DailyStatusModel CreateDailyStatusModel(
         DateOnly day,
